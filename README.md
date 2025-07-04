@@ -3,7 +3,7 @@
 ## Table of Contents
 
 ### Visual SLAM Frontend
-- **[3D Rigid Body Motion](3d_rigid_body_motion.html)** - Mathematical foundations of 3D transformations, rotation matrices, quaternions, and Lie groups
+- **[3d_rigid_body_motion](https://learn-vslam.github.io/3d_rigid_body_motion.html)** - Mathematical foundations of 3D transformations, rotation matrices, quaternions, and Lie groups
 - **[Cameras, Sensors and Projection Model](.html)** - Camera models, sensor characteristics, and projection geometry
 - **[Basic Image Processing, Features Detection and Matching](.html)** - Image preprocessing, feature detection algorithms, and feature matching techniques
 - **[Intro to Multiview Geometry (1)](.html)** - Fundamental concepts of multiple view geometry
