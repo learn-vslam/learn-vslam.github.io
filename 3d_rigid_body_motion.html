@@ -334,6 +334,13 @@
     <p>where $q_x, q_y, q_z$ are the imaginary parts, or called <i>vector part</i>, and $q_w$ is the real part, or called <i>scalar part</i>.</p>
 
     <h3>Quaternion Mathmatics</h3>
+    <p>If we use complex number to represent roation, it would be easiter to understand quaternion. Recall euler formula,</p>
+
+    $$
+    \begin{align}
+        e^{i\theta} = \cos(\theta) + i\sin(\theta)
+    \end{align}
+    $$
 
     <h2>Homogeneous coordinate</h2>
     <p>if a point $\mathbf{P}$, its coordinate is transformed by $\mathbf{R}_1$ to $\mathbf{P}_1$, then by $\mathbf{R}_2$ to $\mathbf{P}_2$, without translation, we have,</p>
@@ -592,7 +599,159 @@
     $$
     
     <h2>Matrix Lie Group</h2>
+
+    <h3>Rotation: Special Orthogonal Group</h3>
+
+    The rotaion matrix, rotation vector (quaternion or axis-angles) are not just matrices or vectors, they are also manifold. Since they are manifolds, they can be locally approximated by a tangent space, which is a Euclidean space. The following figure illustration manifold and its local approximation of tangent space.
+
+    <div class="figure">
+        <img src="./figs/manifold.png" alt="Illustration of manifold and its local approximation of tangent space" style="width: 60%;">
+        <div class="figure-caption">Illustration of manifold and its local approximation of tangent space.</div>
+    </div>
+
+    <p>The group operation is matrix multiplication, and the inverse is the transpose. SO(3) also forms a smooth manifold. Its tangent space at the identity is denoted $\mathfrak{so}(3)$, the Lie algebra, coinciding with the space of $3 \times 3$ skew-symmetric matrices.</p>
+
+    <p>We can associate every vector in $\mathbb{R}^3$ with a skew-symmetric matrix via the <em>hat</em> operator:</p>
+
+    $$
+    \begin{align}
+        \boldsymbol{\omega}^\wedge =
+        \begin{bmatrix}
+        0 & -\omega_3 & \omega_2 \\
+        \omega_3 & 0 & -\omega_1 \\
+        -\omega_2 & \omega_1 & 0
+        \end{bmatrix}
+    \end{align}
+    $$
+
+    <p>Conversely, the <em>vee</em> operator maps a skew-symmetric matrix to a vector in $\mathbb{R}^3$, such that $(\boldsymbol{\omega}^\wedge)^\vee = \boldsymbol{\omega}$.</p>
+
+    <p>A useful property:</p>
+
+    $$
+    \begin{align}
+        \mathbf{a}^\wedge \mathbf{b} = -\mathbf{b}^\wedge \mathbf{a}, \quad \forall \mathbf{a}, \mathbf{b} \in \mathbb{R}^3
+    \end{align}
+    $$
+
+    <p>The exponential map at the identity:</p>
+
+    $$  
+    \begin{align}
+        \exp(\phi^\wedge) = \mathbf{I} + \frac{\sin \| \phi \|}{\| \phi \|} \phi^\wedge + \frac{1 - \cos \| \phi \|}{\| \phi \|^2} (\phi^\wedge)^2
+    \end{align}
+    $$
+
+    <p>First-order approximation:</p>
+
+    $$
+    \begin{align}
+        \exp(\phi^\wedge) \approx \mathbf{I} + \phi^\wedge
+    \end{align}
+    $$
+
+    <p>The logarithm map (at identity):</p>
+
+    $$
+    \begin{align}
+        \log(\mathbf{R}) = \frac{\varphi}{2 \sin \varphi} (\mathbf{R} - \mathbf{R}^\top)
+    \end{align}
+    $$
+
+    <p>with</p>
+
+    $$
+    \begin{align}
+        \varphi = \cos^{-1} \left( \frac{\mathrm{tr}(\mathbf{R}) - 1}{2} \right)
+    \end{align}
+    $$
+
+    <p>Vectorized versions:</p>
+
+    $$
+    \begin{align}
+        \mathrm{Exp}: \mathbb{R}^3 \rightarrow \mathrm{SO}(3), \quad \phi \mapsto \exp(\phi^\wedge)
+    \end{align}
+    $$
+
+    $$
+    \begin{align}
+        \mathrm{Log}: \mathrm{SO}(3) \rightarrow \mathbb{R}^3, \quad \mathbf{R} \mapsto \log(\mathbf{R})^\vee
+    \end{align}
+    $$
+
+    <p>Approximation for small increments:</p>
+
+    $$
+    \begin{align}
+        \mathrm{Exp}(\phi + \delta \phi) \approx \mathrm{Exp}(\phi) \, \mathrm{Exp}(\mathbf{J}_r(\phi) \, \delta \phi)
+    \end{align}
+    $$
+
+    <p>Right Jacobian:</p>
+
+    $$
+    \begin{align}
+        \mathbf{J}_r(\phi) = \mathbf{I} - \frac{1 - \cos \| \phi \|}{\| \phi \|^2} \phi^\wedge + \frac{\| \phi \| - \sin \| \phi \|}{\| \phi \|^3} (\phi^\wedge)^2
+    \end{align}
+    $$
+
+    <p>And its inverse:</p>
+
+    $$
+    \begin{align}
+        \mathbf{J}_r^{-1}(\phi) = \mathbf{I} + \frac{1}{2} \phi^\wedge + \left( \frac{1}{\| \phi \|^2} - \frac{1 + \cos \| \phi \|}{2 \| \phi \| \sin \| \phi \|} \right) (\phi^\wedge)^2
+    \end{align}
+    $$
+
+    <p>Another useful property of the exponential map is:</p>
+
+    $$
+    \begin{align}
+        \mathbf{R} \, \mathrm{Exp}(\phi^\wedge) \, \mathbf{R}^\top = \mathrm{Exp}\left( \mathbf{R} \, \phi^\wedge \, \mathbf{R}^\top \right) = \mathrm{Exp}\left( (\mathbf{R} \phi)^\wedge \right)
+    \end{align}
+    $$
+
+    <p>Which also implies:</p>
+    $$
+    \begin{align}
+        \mathrm{Exp}(\phi^\wedge) \, \mathbf{R} = \mathbf{R} \, \mathrm{Exp}\left( (\mathbf{R}^\top \phi)^\wedge \right)
+    \end{align}
+    $$
+
+    <!-- <h2>Special Euclidean Group</h2>
+
+    <p>$\mathrm{SE}(3)$ describes the group of rigid motions in 3D, the semi-direct product of $\mathrm{SO}(3)$ and $\mathbb{R}^3$:</p>
+
+    $$
+    \begin{align}
+        \mathrm{SE}(3) = \left\{ (\mathbf{R}, \mathbf{p}) : \mathbf{R} \in \mathrm{SO}(3), \, \mathbf{p} \in \mathbb{R}^3 \right\}
+    \end{align}
+    $$
+
+    <p>Given $\mathbf{T}_1, \mathbf{T}_2 \in \mathrm{SE}(3)$, the group operation is:</p>
+
+    $$
+    \begin{align}
+        \mathbf{T}_1 \, \mathbf{T}_2 = (\mathbf{R}_1 \mathbf{R}_2, \, \mathbf{p}_1 + \mathbf{R}_1 \mathbf{p}_2)
+    \end{align}
+    $$
+
+    <p>and the inverse is:</p>
+
+    $$
+    \begin{align}
+        \mathbf{T}_1^{-1} = (\mathbf{R}_1^\top, -\mathbf{R}_1^\top \mathbf{p}_1)
+    \end{align}
+    $$ -->
+
     
+    <h2>References</h2>
+    <ol>
+        <li>Visual SLAM: From Theory to Practice, by Xiang Gao, Tao Zhang, Qinrui Yan and Yi Liu</li>
+        <li>On-Manifold Preintegration for Real-Time Visual-Inertial Odometry, by Christian Forster, Luca Carlone, Frank Dellaert, Davide Scaramuzza</li>
+        <li>GTSAM Tutorials: <a href="https://gtsam.org/2021/02/23/uncertainties-part2.html">https://gtsam.org/2021/02/23/uncertainties-part2.html</a></li>
+    </ol>
 
 </body>
 </html> 
