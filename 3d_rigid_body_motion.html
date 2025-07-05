@@ -38,7 +38,7 @@
             max-width: 1000px;
             margin: 0 auto;
             padding: 20px 40px;
-            font-size: 18px;
+            font-size: 20px;
             counter-reset: figure-counter;
             text-align: justify;
         }
@@ -60,10 +60,6 @@
             font-family: 'Google Sans', sans-serif;
             font-size: 1.4em;
             margin-top: 1.2em;
-        }
-        p {
-            font-size: 1.1em;
-            margin-bottom: 1em;
         }
         .figure {
             text-align: center;
@@ -166,41 +162,29 @@
     <h1>3D Rigid Body Motion</h1>
 
     <h2>Rigid body transformation</h2>
-    <p>In robotics and computer vision, we often need to choose multiple coordinate frames to reflect the motion of cameras, 
-    different links reference to a common selected world frame, aka inertial frame. The transformation between these frames is denoted as a transformation matrix $\mathbf{T}$,</p>
+    In robotics and computer vision, we often need to choose multiple coordinate frames to reflect the motion of cameras, 
+    different links reference to a common selected world frame, aka inertial frame. The transformation between these frames is denoted as a transformation matrix $\mathbf{T}$,
 
     $$
     \begin{align}
         \mathbf{T} = 
         \begin{bmatrix} 
         \mathbf{R} & \mathbf{t} \\
-        \mathbf{0} & \mathbf{1}
+        \mathbf{0} & 1
         \end{bmatrix}
     \end{align}
     $$
 
-    <p>its inverse is</p>
-
-    $$
-    \begin{align}
-        \mathbf{T}^{-1} = 
-        \begin{bmatrix}
-        \mathbf{R}^{\top} & -\mathbf{R}^{\top}\mathbf{t} \\
-        \mathbf{0}^{\top} & \mathbf{1}
-        \end{bmatrix}
-    \end{align}
-    $$
-
-    <p>where $\mathbf{R}$ is a rotation matrix, $\mathbf{t}$ is a translation vector. The transformation describe a relative motion, so we have to specify the motion is in relative to which frame.
+    where $\mathbf{R}$ is a rotation matrix, $\mathbf{t}$ is a translation vector. The transformation describe a relative motion, so we have to specify the motion is in relative to which frame.
     For example, we define the pose of the camera frame $C$ expressed in the world frame $W$ as $\mathbf{T}_{WC}$, which means frame C seen from frame W. 
     Assume a robot moves with a onboard camera. Robot Body frame is $B$, the pose of the camera frame $C$ expressed in the robot body frame $B$ is $\mathbf{T}_{BC}$. 
-    The robot pose can be expressed as,</p>
+    The robot pose can be expressed as,
 
     $$
         \mathbf{T}_{WB} = \mathbf{T}_{WC} \mathbf{T}_{BC}^{-1}
     $$
 
-    <p>The pose indicating transformation from body frame $B$ seen from world frame $W$, which indicating the motion of the robot body, is a transform of a 3D landmark point $\mathbf{X}$ from the body frame $B$ to the world frame $W$.</p>
+    The pose indicating transformation from body frame $B$ seen from world frame $W$, which indicating the motion of the robot body, is a transform of a 3D landmark point $\mathbf{X}$ from the body frame $B$ to the world frame $W$.
 
     $$
     \begin{align}
@@ -208,7 +192,7 @@
     \end{align}
     $$
 
-    <p>And the transformation from world frame $W$ to body frame $B$ is the inverse of the above transformation,</p>
+    And the transformation from world frame $W$ to body frame $B$ is the inverse of the above transformation,
 
     $$
     \begin{align}
@@ -216,10 +200,10 @@
     \end{align}
     $$
 
-    <p>We will give a illustration of the inverse of the pose in the next section.</p>
+    We will give a illustration of the inverse of the pose in the next section.
 
     <h2>Rotation matrix</h2>
-    <p>Let's start with a 2D example, 2-dimensional rotation matrix is denoted as:</p>
+    Let's start with a 2D example, 2-dimensional rotation matrix is denoted as:
 
     $$
     \begin{align}
@@ -231,9 +215,9 @@
     \end{align}
     $$
 
-    <p>rotation $\mathbf{R}$ rotates vectors in the plane by $\theta$ degrees counterclockwise.</p>
+    rotation $\mathbf{R}$ rotates vectors in the plane by $\theta$ degrees counterclockwise.
 
-    <p>Extend to 3-dimensional rotation matrix:</p>
+    Extend to 3-dimensional rotation matrix:
 
     $$
     \begin{align}
@@ -256,7 +240,7 @@
     \end{align}
     $$
 
-    <p>$\mathbf{R}$ is orthogonal matrix and its determinant equals to 1.</p>
+    $\mathbf{R}$ is orthogonal matrix and its determinant equals to 1.
 
     $$
     \begin{align}
@@ -270,7 +254,7 @@
     \end{align}
     $$
 
-    <p>Try to prove the determinant of $\mathbf{R}$ is 1?</p>
+    Try to prove the determinant of $\mathbf{R}$ is 1?
 
     $$
     \begin{align}
@@ -278,30 +262,12 @@
     \end{align}
     $$
 
-    <p>If the determinant of a matrix is 1, it means the transformation preserves the volume of the linear space — it does not <i>scale</i> it.</p>
+    If the determinant of a matrix is 1, it means the transformation preserves the volume of the linear space — it does not <i>scale</i> it.
 
-    <p>These properties make rotation matrix very unique, it is not just a matrix, but actually a manifold, more specifically, a Lie Manifold and also a Lie Group. So $\mathbf{R}$ is a $n$ dimensional Special Orthogonal (SO) Group, which is,</p>
-
-    $$
-    \begin{align}
-        \mathrm{SO}(n) =  
-        \left\{ \mathbf{R} \in \mathbb{\mathbf{R}}^{n \times n} \vert \mathbf{R}\mathbf{R}^{\top} = \mathbf{I}, \det(\mathbf{R}) = 1 \right\}
-    \end{align}
-    $$
-
-    <p>The rigid body transform $\mathbf{T}$ contains both rotation and translation, we form a Lie Manifold which is Special Euclidean Group, SE(3).</p>
-
-    $$
-    \begin{align}
-        \mathrm{SE}(3) = 
-        \left\{ \mathbf{T} \in \mathbb{\mathbf{R}}^{4 \times 4} \vert \mathbf{T} \text{ is a rigid body transform} \right\}
-    \end{align}
-    $$
-
-    <p>We will talk about more details about Lie Group and Lie Algebra in the next lecture.</p>
+    These properties make rotation matrix very unique, it is not just a matrix, but actually a manifold, more specifically, a also a Lie Group and also a Lie Manifold. We will talk about more details about Lie Group and manifold in the <a href="#matrix-lie-group">Matrix Lie Group</a> section. 
 
     <h3>Problem of Euler angle and Introduction to Quaternion</h3>
-    <p>So can we just use a 3D vector which contains the rotation angles around x, y, z axes, to represent the rotation? The answer is no since it will bring the problem of <i>Gimbal Lock</i>, shown in the following figure.</p>
+    So can we just use a 3D vector which contains the rotation angles around x, y, z axes, to represent the rotation? The answer is no since it will bring the problem of <i>Gimbal Lock</i>, shown in the following figure.
 
     <div class="figure">
         <div class="subfigure-container">
@@ -317,7 +283,7 @@
         <div class="figure-caption">Illustration of the problem of using Euler angle to bring the problem of Gimbal Lock.</div>
     </div>
 
-    <p>Although it is OK to represent the 3D rotation by 3 by 3 rotation matrix, it is not the best way to do so since we are literally using 9D vector to represent the a 3D rotation. To solve this problem, we can use a 4D vector to represent the rotation, which is called <i>Quaternion</i>, which in</p>
+    Although it is OK to represent the 3D rotation by 3 by 3 rotation matrix, it is not the most compact way to do so since we are literally using 9D vector to represent a 3D rotation. To solve this problem, we use a 4D vector to represent the rotation, called <i>Quaternion</i>, which is
 
     $$
     \begin{align}
@@ -331,10 +297,10 @@
     \end{align}
     $$
 
-    <p>where $q_x, q_y, q_z$ are the imaginary parts, or called <i>vector part</i>, and $q_w$ is the real part, or called <i>scalar part</i>.</p>
+    where $q_x, q_y, q_z$ are the imaginary parts, or called <i>vector part</i>, and $q_w$ is the real part, or called <i>scalar part</i>.
 
     <h3>Quaternion Mathmatics</h3>
-    <p>If we use complex number to represent roation, it would be easiter to understand quaternion. Recall euler formula,</p>
+    If we use complex number to represent roation, it would be easiter to understand quaternion. Recall euler formula,
 
     $$
     \begin{align}
@@ -343,7 +309,7 @@
     $$
 
     <h2>Homogeneous coordinate</h2>
-    <p>if a point $\mathbf{P}$, its coordinate is transformed by $\mathbf{R}_1$ to $\mathbf{P}_1$, then by $\mathbf{R}_2$ to $\mathbf{P}_2$, without translation, we have,</p>
+    if a point $\mathbf{P}$, its coordinate is transformed by $\mathbf{R}_1$ to $\mathbf{P}_1$, then by $\mathbf{R}_2$ to $\mathbf{P}_2$, without translation, we have,
 
     $$
     \begin{align}
@@ -351,7 +317,7 @@
     \end{align}
     $$
 
-    <p>if a point $\mathbf{P}$, its coordinate is transformed by by $\mathbf{t}_1$ to $\mathbf{P}_1$, then by $\mathbf{t}_2$ to $\mathbf{P}_2$, without rotation, we have,</p>
+    if a point $\mathbf{P}$, its coordinate is transformed by by $\mathbf{t}_1$ to $\mathbf{P}_1$, then by $\mathbf{t}_2$ to $\mathbf{P}_2$, without rotation, we have,
 
     $$
     \begin{align}
@@ -359,7 +325,7 @@
     \end{align}
     $$
 
-    <p>Suppose a point $\mathbf{P}$, its coordinate is transformed by [$\mathbf{R}_1$, $\mathbf{t}_1$] to $\mathbf{P}_1$, Then transformed by [$\mathbf{R}_2$, $\mathbf{t}_2$] to $\mathbf{P}_2$.</p>
+    Suppose a point $\mathbf{P}$, its coordinate is transformed by [$\mathbf{R}_1$, $\mathbf{t}_1$] to $\mathbf{P}_1$, Then transformed by [$\mathbf{R}_2$, $\mathbf{t}_2$] to $\mathbf{P}_2$.
 
     $$
     \begin{align}
@@ -381,14 +347,14 @@
     \end{align}
     $$
 
-    <p>Multiple transformations cannot be described in a uniform way. How do we solve this problem?</p>
-    <p>The answer is to represent $\mathbf{P}$ in <b>homogeneous coordinates</b>.</p>
+    Multiple transformations cannot be described in a uniform way. How do we solve this problem?
+    The answer is to represent $\mathbf{P}$ in <b>homogeneous coordinates</b>.
 
     $$
     \begin{align}
         \begin{bmatrix}
         \mathbf{P}_1 \\
-        \mathbf{1}
+        1
         \end{bmatrix}
         =
         \begin{bmatrix}
@@ -397,12 +363,12 @@
         \end{bmatrix}
         \begin{bmatrix}
         \mathbf{P} \\
-        \mathbf{1}
+        1
         \end{bmatrix}
     \end{align}
     $$
 
-    <p>Thus, it can represent the transformations from $\mathbf{P}$ to $\mathbf{P}_1$, then to $\mathbf{P}_2$ in a uniform way.</p>
+    Thus, it can represent the transformations from $\mathbf{P}$ to $\mathbf{P}_1$, then to $\mathbf{P}_2$ in a uniform way.
 
     $$
     \begin{align}
@@ -419,7 +385,7 @@
     \end{align}
     $$
 
-    <p>Original coordinate of 3D point $\mathbf{P}$ and $\mathbf{P}$ in homogeneous coordinates,</p>
+    Original coordinate of 3D point $\mathbf{P}$ and $\mathbf{P}$ in homogeneous coordinates,
 
     $$
     \begin{align}
@@ -440,7 +406,7 @@
     \end{align}
     $$
 
-    <p>Homogeneous coordinate is defined only up to scale, all of them represents the same 3D coordinate</p>
+    Homogeneous coordinate is defined only up to scale, all of them represents the same 3D coordinate
 
     $$
     \begin{align}
@@ -468,7 +434,7 @@
     \end{align}
     $$
 
-    <p>where $s$ is a scalar.</p>
+    where $s$ is a scalar.
 
     <h2>Illustration of the inverse of the pose</h2>
     <div class="figure">
@@ -476,7 +442,7 @@
         <div class="figure-caption">Illustration of the inverse of the pose.</div>
     </div>
 
-    <p>Let's take a look at this example, the body frame equals to apply a 90 degree counterclockwise rotation around the z-axis. The pose of the body here is simply</p>
+    Let's take a look at this example, the body frame equals to apply a 90 degree counterclockwise rotation around the z-axis. The pose of the body here is simply
 
     $$
     \begin{align}
@@ -490,7 +456,7 @@
     \end{align}
     $$
 
-    <p>Given a point $\mathbf{X}_W$ in the world frame,</p>
+    Given a point $\mathbf{X}_W$ in the world frame,
 
     $$
     \begin{align}
@@ -504,7 +470,7 @@
     \end{align}
     $$
 
-    <p>The point in body frame is</p>
+    The point in body frame is
 
     $$
     \begin{align}
@@ -532,23 +498,23 @@
     $$
 
     <h2>Conversion between Coordinate Conventions</h2>
-    <p>The coordinate convention usually consists of left-hand and right-hand system. To tell if a coordinate system is left-hand or right-hand, we just thumbs up for both hands. The direction of the thumb is the direction of the z-axis, and the direction of the fingers is the direction of the x-axis to y-axis. Right hand system is more common, but some softwares like Unity and UnrealEngine do uses left hand system.</p>
+    The coordinate convention usually consists of left-hand and right-hand system. To tell if a coordinate system is left-hand or right-hand, we just thumbs up for both hands. The direction of the thumb is the direction of the z-axis, and the direction of the fingers is the direction of the x-axis to y-axis. Right hand system is more common, but some softwares like Unity and UnrealEngine do uses left hand system.
 
     <div class="figure">
         <img src="figs/left_right_hand.PNG" alt="Left and right hand coordinate systems" style="width: 50%;">
         <div class="figure-caption">Illustration of the left and right hand systems.</div>
     </div>
 
-    <p>The confusing part usually not just from the left and right hand system, but also from the difination of X, Y, Z axis. For example, in ROS, X axis is forward, Y is left and Z is up. Different softwares also uses different coordinate conventions. OpenCV, COLMAP, Open3D usually follow the same convention, ROS, OpenGL also use a different convention. The following figures the illustration of the different conventions.</p>
+    The confusing part usually not just from the left and right hand system, but also from the difination of X, Y, Z axis. For example, in ROS, X axis is forward, Y is left and Z is up. Different softwares also uses different coordinate conventions. OpenCV, COLMAP, Open3D usually follow the same convention, ROS, OpenGL also use a different convention. The following figures the illustration of the different conventions.  
 
     <div class="figure">
         <img src="./figs/coord_conventions.PNG" alt="Illustration of the different coordinate conventions" style="width: 60%;">
         <div class="figure-caption">Illustration of the different coordinate conventions.</div>
     </div>
 
-    <p>The problem then is how to convert the coordinate convention between different softwares. The answer is to use the a rotation matrix. This is also called <i>change of basis</i> in linear algebra. Note that only when the coordinate conventions are all using either left-hand or right-hand system, we can use a rotation matrix to convert the coordinate convention.</p>
+    The problem then is how to convert the coordinate convention between different softwares. The answer is to use the a rotation matrix. This is also called <i>change of basis</i> in linear algebra. Note that only when the coordinate conventions are all using either left-hand or right-hand system, we can use a rotation matrix to convert the coordinate convention.
 
-    <p>We first start with converting a reference 3D landmark point $\mathbf{X}$ (in homogeneous coordinates), from the OpenCV convention to ROS convention. The same point will have different coordinates in different conventions, obviously.</p>
+    We first start with converting a reference 3D landmark point $\mathbf{X}$ (in homogeneous coordinates), from the OpenCV convention to ROS convention. The same point will have different coordinates in different conventions, obviously.
 
     $$
     \begin{equation}
@@ -565,10 +531,10 @@
     \end{equation}
     $$
 
-    <p>So what are we doing here? It's actually quite intuitive, the resultant X-axis in ROS equals to the Z-axis in OpenCV, the Y-axis in ROS is the flip of the X-axis in OpenCV, and the Z-axis in ROS is the flip of the Y-axis in OpenCV. The camera pose in world frame is,</p>
+    So what are we doing here? It's actually quite intuitive, the resultant X-axis in ROS equals to the Z-axis in OpenCV, the Y-axis in ROS is the flip of the X-axis in OpenCV, and the Z-axis in ROS is the flip of the Y-axis in OpenCV. The camera pose in world frame is,
 
-    <p>The tricky part comes from converting a transformation, aka a pose, from one convention to another. We will have to do a little derivation here. In Visual odometry or geometric vision,
-    assume we compute the relative pose $\mathbf{T}_{C_0C}$ between the current frame $C$ and the first frame $C_0$, and also reconstruct a 3D landmark point $\mathbf{X}$ in the first frame $C_0$.</p>
+    The tricky part comes from converting a transformation, aka a pose, from one convention to another. We will have to do a little derivation here. In Visual odometry or geometric vision,
+    assume we compute the relative pose $\mathbf{T}_{C_0C}$ between the current frame $C$ and the first frame $C_0$, and also reconstruct a 3D landmark point $\mathbf{X}$ in the first frame $C_0$.
 
     $$
     \begin{equation}
@@ -579,7 +545,7 @@
     \end{equation}
     $$
 
-    <p>And in general, the conversion between two conventions is,</p>
+    And in general, the conversion between two conventions is,
 
     $$
     \begin{align}
@@ -587,7 +553,7 @@
     \end{align}
     $$
 
-    <p>This equation can easily be proved, assume we have a pose $\mathbf{T}_{AB}$, indicating the pose of frame B in frame A. We want to get the pose of frame D in frame C. And we know the conversion A $\rightarrow$ C, meaning transform a point from A to C, denoted as $\mathbf{T}_{CA}$, B $\rightarrow$ D, meaning transform of a point from B to D, denoted as $\mathbf{T}_{DB}$. Here B and D are camera frames, and A and C are world frames.</p>
+    This equation can easily be proved, assume we have a pose $\mathbf{T}_{AB}$, indicating the pose of frame B in frame A. We want to get the pose of frame D in frame C. And we know the conversion A $\rightarrow$ C, meaning transform a point from A to C, denoted as $\mathbf{T}_{CA}$, B $\rightarrow$ D, meaning transform of a point from B to D, denoted as $\mathbf{T}_{DB}$. Here B and D are camera frames, and A and C are world frames.
 
     $$
     \begin{equation}
@@ -598,79 +564,235 @@
     \end{equation}
     $$
     
-    <h2>Matrix Lie Group</h2>
+    <h2 id="matrix-lie-group">Lie Group and Lie Algebra</h2>
+    <h3>Group Perspective</h3>
+    Formally, rotation matrix $\mathbf{R}$ is a $n$ dimensional <b>Special Orthogonal (SO) Group</b>, which is, 
+    $$
+    \begin{align}
+        \mathrm{SO}(n) =  
+        \left\{ \mathbf{R} \in \mathbb{\mathbf{R}}^{n \times n} \vert \mathbf{R}\mathbf{R}^{\top} = \mathbf{I}, \det(\mathbf{R}) = 1 \right\}
+    \end{align}
+    $$
+    Obviously, the 3D rotation matrix we talked about is $\mathrm{SO}(3)$ group.<br>
 
-    <h3>Rotation: Special Orthogonal Group</h3>
+    The previously mentioned 3D rigid body motion is also a Lie Group, which is called <b>Special Euclidean (SE) Group</b>, $\mathrm{SE}(3)$. It has $\mathrm{SO}(3)$ and $\mathbb{R}^3$ as its subgroups:
+    $$
+    \begin{align}
+        \mathrm{SE}(3) = \left\{ \mathbf{T} = \begin{bmatrix} \mathbf{R} & \mathbf{t} \\ \mathbf{0} & 1 \end{bmatrix} \in \mathbb{\mathbf{R}}^{4 \times 4}: \mathbf{R} \in \mathrm{SO}(3), \, \mathbf{t} \in \mathbb{R}^3 \right\}
+    \end{align}
+    $$
 
-    The rotaion matrix, rotation vector (quaternion or axis-angles) are not just matrices or vectors, they are also manifold. Since they are manifolds, they can be locally approximated by a tangent space, which is a Euclidean space. The following figure illustration manifold and its local approximation of tangent space.
+    In the languange of abstract algebra, a <b>Group</b> is an algebraic structure consisting of a <b>set</b>, denoted as $S$, and an <b>operation</b>, denoted as $\cdot$. $G = (S, \cdot)$ is a group if the operation $\cdot$ satisfies the following conditions:
 
+    <ol>
+        <li><strong>Closure:</strong>  
+            \( \forall a_1, a_2 \in S, \ a_1 \cdot a_2 \in S. \)
+        </li>
+    
+        <li><strong>Associativity:</strong>  
+            \( \forall a_1, a_2, a_3 \in S, \ (a_1 \cdot a_2) \cdot a_3 = a_1 \cdot (a_2 \cdot a_3). \)
+        </li>
+    
+        <li><strong>Identity element:</strong>  
+            \( \exists a_0 \in S \) such that \( \forall a \in S, \ a_0 \cdot a = a \cdot a_0 = a. \)
+        </li>
+    
+        <li><strong>Inverse element:</strong>  
+            \( \forall a \in S, \ \exists a^{-1} \in S \) such that \( a \cdot a^{-1} = a^{-1} \cdot a = a_0. \)
+        </li>
+    </ol>
+
+    A <b>Lie Group</b> is a group that is also a <b>differentiable manifold</b>. A manifold is a topological space that locally resembles Euclidean space. Manifold is anywhere, the earth surface is a manifold, the spacetime we live in is a manifold. We first talk about why rotation and rigid body transformation is roups, then we talk about why they are also manifolds. Lie Group is named after the Norwegian mathematician Sophus Lie. <br>
+
+    Let's first prove the rotation matrix and rigid body transformation are groups. The proof is actually rather straightforward. <br>
+
+    1. Closure <br>
+    It's obvious to find a operation (actually the only operation) that satisfies the closure property for $\mathrm{SO}(3)$ and $\mathrm{SE}(3)$, which is matrix multiplication. <br>
+
+    Given $\mathbf{R}_1, \mathbf{R}_2 \in \mathrm{SO}(3)$, the group operation is:
+    $$
+    \begin{align}
+        \mathbf{R}_1 \mathbf{R}_2 \in \mathrm{SO}(3)
+    \end{align}
+    $$
+
+    Given $\mathbf{T}_1, \mathbf{T}_2 \in \mathrm{SE}(3)$, the group operation is:
+    $$
+    \begin{align}
+        \mathbf{T}_1 \, \mathbf{T}_2 = \begin{bmatrix} \mathbf{R}_1 \mathbf{R}_2 & \mathbf{R}_1 \mathbf{t}_2 + \mathbf{t}_1 \\ \mathbf{0} & 1 \end{bmatrix} \in \mathrm{SE}(3)
+    \end{align}
+    $$
+
+    It's also obvious that addition/subtraction is not a valid operation for $\mathrm{SO}(3)$ and $\mathrm{SE}(3)$, since
+    $$
+    \begin{align}
+        \mathbf{R}_1 + \mathbf{R}_2 \notin \mathrm{SO}(3); \quad \mathbf{T}_1 + \mathbf{T}_2 \notin \mathrm{SE}(3)
+    \end{align}
+    $$
+
+    2. Associativity <br>
+    Associativity is also obvious for $\mathrm{SO}(3)$ and $\mathrm{SE}(3)$, since matrix multiplication is simply associative. <br>
+
+    3. Identity element <br>
+    The identity element for $\mathrm{SO}(3)$ and $\mathrm{SE}(3)$ is a $3 \times 3$ and $4 \times 4$ identity matrix, respectively.
+    $$
+    \begin{align}
+        \mathbf{I}_3 \in \mathrm{SO}(3); \quad \mathbf{I}_4 \in \mathrm{SE}(3)
+    \end{align}
+    $$
+    
+    4. Inverse element <br>
+    Inverse of a rotation matrix is its transpose:
+    $$
+    \begin{align}
+        \mathbf{R}^{-1} = \mathbf{R}^{\top}
+    \end{align}
+    $$
+
+    And the inverse of a rigid body transformation is:
+    $$
+    \begin{align}
+        \mathbf{T}^{-1} = 
+        \begin{bmatrix}
+        \mathbf{R}^{\top} & -\mathbf{R}^{\top}\mathbf{t} \\
+        \mathbf{0}^{\top} & 1
+        \end{bmatrix}
+    \end{align}
+    $$
+
+    <h3>Manifold Perspective</h3>
+    Next we talk about the manifold perspective of the rotation matrix and rigid body transformation. Since they are manifolds, they can be locally approximated by a tangent space, which is a Euclidean space. The following figure illustrates manifold and its local approximation of tangent space.
     <div class="figure">
         <img src="./figs/manifold.png" alt="Illustration of manifold and its local approximation of tangent space" style="width: 60%;">
         <div class="figure-caption">Illustration of manifold and its local approximation of tangent space.</div>
     </div>
 
-    <p>The group operation is matrix multiplication, and the inverse is the transpose. SO(3) also forms a smooth manifold. Its tangent space at the identity is denoted $\mathfrak{so}(3)$, the Lie algebra, coinciding with the space of $3 \times 3$ skew-symmetric matrices.</p>
+    To better understand Lie Group/Manifold and Lie Algebra, we need to bring a little taste of differential geometry here. <br>
 
-    <p>We can associate every vector in $\mathbb{R}^3$ with a skew-symmetric matrix via the <em>hat</em> operator:</p>
-
+    We first start the derivation of Lie Algebra of $\mathrm{SO}(3)$. Think of a camera moving in a 3D space, the rotation matrix $\mathbf{R}(t)$ changes continuously over time, thus defined as a function over time $t$. It should satisfy:
     $$
     \begin{align}
-        \boldsymbol{\omega}^\wedge =
+        \mathbf{R}(t)\mathbf{R}(t)^\mathrm{T} = \mathbf{I}
+    \end{align}
+    $$
+
+    Taking the derivative over time $t$ on both sides of the equation yields:
+    $$
+    \begin{align}
+    \dot{\mathbf{R}}(t)\mathbf{R}(t)^\mathrm{T} + \mathbf{R}(t)\dot{\mathbf{R}}(t)^\mathrm{T} = \mathbf{0} 
+    \end{align}
+    $$
+
+    hence,
+    $$
+    \begin{align}
+    \dot{\mathbf{R}}(t)\mathbf{R}(t)^\mathrm{T} = -\left(\dot{\mathbf{R}}(t)\mathbf{R}(t)^\mathrm{T}\right)^\mathrm{T}
+    \end{align}
+    $$
+
+    Thus matrix $\dot{\mathbf{R}}(t)\mathbf{R}(t)^\mathrm{T}$ is a skew-symmetric matrix, which means there exists a 3D vector $\boldsymbol{\phi}(t) \in \mathbb{R}^3$ corresponding to the skew-symmetric matrix via the <i>hat</i> operator:
+    $$
+    \begin{align}
+    \label{eq:phi_hat}
+        \boldsymbol{\phi}(t)^\wedge = \dot{\mathbf{R}}(t)\mathbf{R}(t)^\mathrm{T}
+    \end{align}
+    $$
+
+    In specific, the hat operator for $\boldsymbol{\phi}(t)$ is defined as (dropping the time index $t$ for simplicity):
+    $$
+    \begin{align}
+        \boldsymbol{\phi}^\wedge =
         \begin{bmatrix}
-        0 & -\omega_3 & \omega_2 \\
-        \omega_3 & 0 & -\omega_1 \\
-        -\omega_2 & \omega_1 & 0
+        0 & -\phi_3 & \phi_2 \\
+        \phi_3 & 0 & -\phi_1 \\
+        -\phi_2 & \phi_1 & 0
         \end{bmatrix}
     \end{align}
     $$
 
-    <p>Conversely, the <em>vee</em> operator maps a skew-symmetric matrix to a vector in $\mathbb{R}^3$, such that $(\boldsymbol{\omega}^\wedge)^\vee = \boldsymbol{\omega}$.</p>
-
-    <p>A useful property:</p>
-
+    If we simply manipulate the equation \eqref{eq:phi_hat} by right-multiplying both sides by $\mathbf{R}(t)$, and using the property that $\mathbf{R}(t)$ is an orthogonal matrix, we get the derivative of the rotation matrix over $t$ is simply:
     $$
     \begin{align}
-        \mathbf{a}^\wedge \mathbf{b} = -\mathbf{b}^\wedge \mathbf{a}, \quad \forall \mathbf{a}, \mathbf{b} \in \mathbb{R}^3
+    \label{eq:phi_hat_derivative}
+        \dot{\mathbf{R}}(t) = \boldsymbol{\phi}(t)^\wedge \mathbf{R}(t)
     \end{align}
     $$
 
-    <p>The exponential map at the identity:</p>
+    When $\mathbf{R(t)} = \mathbf{I}$, the derivative of the rotation matrix over $t$ is simply:
+    $$
+    \begin{align}
+    \dot{\mathbf{R}}(t) = \boldsymbol{\phi}(t)^\wedge
+    \end{align}
+    $$
+
+    And at this point, we can see that the tangent space, which is reflecting the derivative of the rotation matrix over $t$ at the identity, is a 3-dimensional real vector space, coinciding with the space of $3 \times 3$ skew-symmetric matrices. This tangent space is denoted as $\mathfrak{so}(3)$, defined as the <b>Lie algebra</b> of $\mathrm{SO}(3)$. <br>
+
+    The solution to the differential equation \eqref{eq:phi_hat_derivative} is:
+    $$
+    \begin{align}
+    \mathbf{R}(t) = \exp\left(\boldsymbol{\phi}^\wedge t\right)
+    \end{align}
+    $$
+
+    This mapping is denoted as <b>Exponential Map</b>, which is a mapping from the Lie Algebra to the Lie Group. This process is also called <b>Retraction</b>.
+
+    <!-- Use first-order Taylor expansion of $\mathbf{R}(t)$,
+    $$
+    \begin{align}
+    \mathbf{R}(t) \approx \mathbf{R}(t_0) + \dot{\mathbf{R}}(t_0)(t - t_0)
+    \end{align}
+    $$
+
+    At $t_0 = 0$, where $\mathbf{R}(0) = \mathbf{I}$, and simplify $\boldsymbol{\phi}(0) = \boldsymbol{\phi}$, the above equation becomes:
+    $$
+    \begin{align}
+    \mathbf{R}(t) \approx \mathbf{I} + \boldsymbol{\phi}(0)^\wedge t = \mathbf{I} + \boldsymbol{\phi}^\wedge t
+    \end{align}
+    $$
+
+    The <em>vee</em> operator maps a skew-symmetric matrix to a vector in $\mathbb{R}^3$, such that $(\boldsymbol{\omega}^\wedge)^\vee = \boldsymbol{\omega}$. -->
+
+
+    <h4>Retraction and Local Operations</h4>
+    Next we talk about the conversion between Lie Manifold and its Lie Algebra, hence the <b>Retraction</b> operation via the <b>Exponential Map</b>, and the <b>Local</b> operation via the <b>Logarithm Map</b>. <br>
+
+    The Retraction operation maps a Lie Algebra element $\boldsymbol{\phi} \in \mathfrak{so}(3)$ to a Lie Manifold element $\mathbf{R} \in \mathrm{SO}(3)$, with the Exponential Map, which can be represented by the <b>Rodrigues' formula</b>, via Taylor expansion:
 
     $$  
     \begin{align}
-        \exp(\phi^\wedge) = \mathbf{I} + \frac{\sin \| \phi \|}{\| \phi \|} \phi^\wedge + \frac{1 - \cos \| \phi \|}{\| \phi \|^2} (\phi^\wedge)^2
+        \exp(\boldsymbol{\phi}^\wedge) = \mathbf{I} + \frac{\sin \| \boldsymbol{\phi} \|}{\| \boldsymbol{\phi} \|} \boldsymbol{\phi}^\wedge + \frac{1 - \cos \| \boldsymbol{\phi} \|}{\| \boldsymbol{\phi} \|^2} (\boldsymbol{\phi}^\wedge)^2
     \end{align}
     $$
 
-    <p>First-order approximation:</p>
+    The first-order approximation of the Exponential Map is:
 
     $$
     \begin{align}
-        \exp(\phi^\wedge) \approx \mathbf{I} + \phi^\wedge
+        \exp(\boldsymbol{\phi}^\wedge) \approx \mathbf{I} + \boldsymbol{\phi}^\wedge
     \end{align}
     $$
 
-    <p>The logarithm map (at identity):</p>
+    The logarithm map (at identity):
 
     $$
     \begin{align}
-        \log(\mathbf{R}) = \frac{\varphi}{2 \sin \varphi} (\mathbf{R} - \mathbf{R}^\top)
+        \log(\mathbf{R}) = \frac{\boldsymbol{\varphi}}{2 \sin \boldsymbol{\varphi}} (\mathbf{R} - \mathbf{R}^\top)
     \end{align}
     $$
 
-    <p>with</p>
+    with
 
     $$
     \begin{align}
-        \varphi = \cos^{-1} \left( \frac{\mathrm{tr}(\mathbf{R}) - 1}{2} \right)
+        \boldsymbol{\varphi} = \cos^{-1} \left( \frac{\mathrm{tr}(\mathbf{R}) - 1}{2} \right)
     \end{align}
     $$
 
-    <p>Vectorized versions:</p>
+    Vectorized versions:
 
     $$
     \begin{align}
-        \mathrm{Exp}: \mathbb{R}^3 \rightarrow \mathrm{SO}(3), \quad \phi \mapsto \exp(\phi^\wedge)
+        \mathrm{Exp}: \mathbb{R}^3 \rightarrow \mathrm{SO}(3), \quad \boldsymbol{\phi} \mapsto \exp(\boldsymbol{\phi}^\wedge)
     \end{align}
     $$
 
@@ -680,7 +802,7 @@
     \end{align}
     $$
 
-    <p>Approximation for small increments:</p>
+    Approximation for small increments:
 
     $$
     \begin{align}
@@ -688,7 +810,7 @@
     \end{align}
     $$
 
-    <p>Right Jacobian:</p>
+    Right Jacobian:
 
     $$
     \begin{align}
@@ -696,7 +818,7 @@
     \end{align}
     $$
 
-    <p>And its inverse:</p>
+    And its inverse:
 
     $$
     \begin{align}
@@ -704,7 +826,7 @@
     \end{align}
     $$
 
-    <p>Another useful property of the exponential map is:</p>
+    Another useful property of the exponential map is:
 
     $$
     \begin{align}
@@ -712,40 +834,13 @@
     \end{align}
     $$
 
-    <p>Which also implies:</p>
+    Which also implies:
     $$
     \begin{align}
         \mathrm{Exp}(\phi^\wedge) \, \mathbf{R} = \mathbf{R} \, \mathrm{Exp}\left( (\mathbf{R}^\top \phi)^\wedge \right)
     \end{align}
     $$
-
-    <!-- <h2>Special Euclidean Group</h2>
-
-    <p>$\mathrm{SE}(3)$ describes the group of rigid motions in 3D, the semi-direct product of $\mathrm{SO}(3)$ and $\mathbb{R}^3$:</p>
-
-    $$
-    \begin{align}
-        \mathrm{SE}(3) = \left\{ (\mathbf{R}, \mathbf{p}) : \mathbf{R} \in \mathrm{SO}(3), \, \mathbf{p} \in \mathbb{R}^3 \right\}
-    \end{align}
-    $$
-
-    <p>Given $\mathbf{T}_1, \mathbf{T}_2 \in \mathrm{SE}(3)$, the group operation is:</p>
-
-    $$
-    \begin{align}
-        \mathbf{T}_1 \, \mathbf{T}_2 = (\mathbf{R}_1 \mathbf{R}_2, \, \mathbf{p}_1 + \mathbf{R}_1 \mathbf{p}_2)
-    \end{align}
-    $$
-
-    <p>and the inverse is:</p>
-
-    $$
-    \begin{align}
-        \mathbf{T}_1^{-1} = (\mathbf{R}_1^\top, -\mathbf{R}_1^\top \mathbf{p}_1)
-    \end{align}
-    $$ -->
-
-    
+ 
     <h2>References</h2>
     <ol>
         <li>Visual SLAM: From Theory to Practice, by Xiang Gao, Tao Zhang, Qinrui Yan and Yi Liu</li>
