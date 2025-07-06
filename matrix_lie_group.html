@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,400,900">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:300,400,700">
+    <link rel="stylesheet" href="../../latex.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          processEscapes: true
+        },
+        TeX: {
+          equationNumbers: {
+            autoNumber: "AMS",
+            useLabelIds: true
+          }
+        },
+        "HTML-CSS": {
+          availableFonts: ["STIX"],
+          linebreaks: { automatic: true },
+          imageFont: null
+        }
+      });
+    </script>
+    <script type="text/javascript" async
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+    </script>
+    <meta charset="UTF-8">
+    <base target="_blank">
+    <title>Matrix Lie Group</title>
+    <style>
+        body {
+            font-family: 'Lato', 'Google Sans', sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px 40px;
+            font-size: 20px;
+            counter-reset: figure-counter;
+            text-align: justify;
+        }
+        h1 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            text-align: center;
+            margin-bottom: 2em;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.8em;
+            margin-top: 1.5em;
+        }
+        h3 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.4em;
+            margin-top: 1.2em;
+        }
+        .figure {
+            text-align: center;
+            margin: 30px 0;
+            width: 100%;
+            counter-increment: figure-counter;
+        }
+        .figure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .figure-caption {
+            font-style: italic;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .figure-caption::before {
+            content: "Figure " counter(figure-counter) ": ";
+            font-weight: bold;
+            font-style: normal;
+        }
+        .subfigure-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 20px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .subfigure {
+            flex: 0 1 600px;
+            text-align: center;
+        }
+        .subfigure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            min-width: 400px;
+        }
+        .subfigure .figure-caption {
+            font-style: italic;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .subfigure .figure-caption::before {
+            content: none;
+        }
+        .MathJax {
+            font-size: 1.1em !important;
+        }
+        .MathJax_Display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin: 1em 0;
+        }
+        .equation-container {
+            display: table;
+            width: 100%;
+            margin: 1.5em 0;
+        }
+        .equation-content {
+            display: table-cell;
+            width: 100%;
+        }
+        .figure-label::before {
+            content: "Figure " counter(figure-counter) ":";
+            font-weight: bold;
+            margin-right: 0.5em;
+        }
+        /* MathJax display styles */
+        .MJXc-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .MJXc-display::-webkit-scrollbar {
+            width: 5px;
+            height: 2px;
+        }
+        .MJXc-display::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .MJXc-display::-webkit-scrollbar-thumb {
+            background: #ddd;
+            visibility:hidden;
+        }
+        .MJXc-display:hover::-webkit-scrollbar-thumb {
+            visibility:visible;
+        }
+    </style>
+
+</head>
+<body>
+    <h1>Matrix Lie Group</h1>
+
+    <h2>Group Perspective</h2>
+    Formally, rotation matrix $\mathbf{R}$ is a $n$ dimensional <b>Special Orthogonal (SO) Group</b>, which is, 
+    $$
+    \begin{align}
+        \mathrm{SO}(n) =  
+        \left\{ \mathbf{R} \in \mathbb{\mathbf{R}}^{n \times n} \vert \mathbf{R}\mathbf{R}^{\top} = \mathbf{I}, \det(\mathbf{R}) = 1 \right\}
+    \end{align}
+    $$
+    Obviously, the 3D rotation matrix we talked about is $\mathrm{SO}(3)$ group.<br>
+
+    The previously mentioned 3D rigid body motion is also a Lie Group, which is called <b>Special Euclidean (SE) Group</b>, $\mathrm{SE}(3)$. It has $\mathrm{SO}(3)$ and $\mathbb{R}^3$ as its subgroups:
+    $$
+    \begin{align}
+        \mathrm{SE}(3) = \left\{ \mathbf{T} = \begin{bmatrix} \mathbf{R} & \mathbf{t} \\ \mathbf{0} & 1 \end{bmatrix} \in \mathbb{\mathbf{R}}^{4 \times 4}: \mathbf{R} \in \mathrm{SO}(3), \, \mathbf{t} \in \mathbb{R}^3 \right\}
+    \end{align}
+    $$
+
+    In the languange of abstract algebra, a <b>Group</b> is an algebraic structure consisting of a <b>set</b>, denoted as $S$, and an <b>operation</b>, denoted as $\cdot$. $G = (S, \cdot)$ is a group if the operation $\cdot$ satisfies the following conditions:
+
+    <ol>
+        <li><strong>Closure:</strong>  
+            \( \forall a_1, a_2 \in S, \ a_1 \cdot a_2 \in S. \)
+        </li>
+
+        <li><strong>Associativity:</strong>  
+            \( \forall a_1, a_2, a_3 \in S, \ (a_1 \cdot a_2) \cdot a_3 = a_1 \cdot (a_2 \cdot a_3). \)
+        </li>
+
+        <li><strong>Identity element:</strong>  
+            \( \exists a_0 \in S \) such that \( \forall a \in S, \ a_0 \cdot a = a \cdot a_0 = a. \)
+        </li>
+
+        <li><strong>Inverse element:</strong>  
+            \( \forall a \in S, \ \exists a^{-1} \in S \) such that \( a \cdot a^{-1} = a^{-1} \cdot a = a_0. \)
+        </li>
+    </ol>
+
+    A <b>Lie Group</b> is a group that is also a <b>differentiable manifold</b>. A manifold is a topological space that locally resembles Euclidean space. Manifold is anywhere, the earth surface is a manifold, the spacetime we live in is a manifold. We first talk about why rotation and rigid body transformation is roups, then we talk about why they are also manifolds. Lie Group is named after the Norwegian mathematician Sophus Lie (1842-1899). <br>
+
+    Let's first prove the rotation matrix and rigid body transformation are groups. The proof is actually rather straightforward. <br>
+
+    1. Closure <br>
+    It's obvious to find a operation (actually the only operation) that satisfies the closure property for $\mathrm{SO}(3)$ and $\mathrm{SE}(3)$, which is matrix multiplication. <br>
+
+    Given $\mathbf{R}_1, \mathbf{R}_2 \in \mathrm{SO}(3)$, the group operation is:
+    $$
+    \begin{align}
+        \mathbf{R}_1 \mathbf{R}_2 \in \mathrm{SO}(3)
+    \end{align}
+    $$
+
+    Given $\mathbf{T}_1, \mathbf{T}_2 \in \mathrm{SE}(3)$, the group operation is:
+    $$
+    \begin{align}
+        \mathbf{T}_1 \, \mathbf{T}_2 = \begin{bmatrix} \mathbf{R}_1 \mathbf{R}_2 & \mathbf{R}_1 \mathbf{t}_2 + \mathbf{t}_1 \\ \mathbf{0} & 1 \end{bmatrix} \in \mathrm{SE}(3)
+    \end{align}
+    $$
+
+    It's also obvious that addition/subtraction is not a valid operation for $\mathrm{SO}(3)$ and $\mathrm{SE}(3)$, since
+    $$
+    \begin{align}
+        \mathbf{R}_1 + \mathbf{R}_2 \notin \mathrm{SO}(3); \quad \mathbf{T}_1 + \mathbf{T}_2 \notin \mathrm{SE}(3)
+    \end{align}
+    $$
+
+    2. Associativity <br>
+    Associativity is also obvious for $\mathrm{SO}(3)$ and $\mathrm{SE}(3)$, since matrix multiplication is simply associative. <br>
+
+    3. Identity element <br>
+    The identity element for $\mathrm{SO}(3)$ and $\mathrm{SE}(3)$ is a $3 \times 3$ and $4 \times 4$ identity matrix, respectively.
+    $$
+    \begin{align}
+        \mathbf{I}_3 \in \mathrm{SO}(3); \quad \mathbf{I}_4 \in \mathrm{SE}(3)
+    \end{align}
+    $$
+
+    4. Inverse element <br>
+    Inverse of a rotation matrix is its transpose:
+    $$
+    \begin{align}
+        \mathbf{R}^{-1} = \mathbf{R}^{\top}
+    \end{align}
+    $$
+
+    And the inverse of a rigid body transformation is:
+    $$
+    \begin{align}
+        \mathbf{T}^{-1} = 
+        \begin{bmatrix}
+        \mathbf{R}^{\top} & -\mathbf{R}^{\top}\mathbf{t} \\
+        \mathbf{0}^{\top} & 1
+        \end{bmatrix}
+    \end{align}
+    $$
+
+    <h2>Manifold Perspective</h2>
+    Next we talk about the manifold perspective of the rotation matrix and rigid body transformation. Since they are manifolds, they can be locally approximated by a tangent space, which is a Euclidean space. The following figure illustrates manifold and its local approximation of tangent space.
+    <div class="figure">
+        <img src="./figs/manifold.png" alt="Illustration of manifold and its local approximation of tangent space" style="width: 60%;">
+        <div class="figure-caption">Illustration of manifold and its local approximation of tangent space.</div>
+    </div>
+
+    <h3>Lie Algebra, Retraction and Exponential Map</h3>
+    To better understand Lie Group/Manifold and Lie Algebra, we need to bring a little taste of differential geometry here. <br>
+
+    <h4>Lie Algebra of $\mathrm{SO}(3)$</h4>
+    We first start the derivation of Lie Algebra of $\mathrm{SO}(3)$. Think of a camera moving in a 3D space, the rotation matrix $\mathbf{R}(t)$ changes continuously over time, thus defined as a function over time $t$. It should satisfy:
+    $$
+    \begin{align}
+        \mathbf{R}(t)\mathbf{R}(t)^\mathrm{T} = \mathbf{I}
+    \end{align}
+    $$
+
+    Taking the derivative over time $t$ on both sides of the equation yields:
+    $$
+    \begin{align}
+    \dot{\mathbf{R}}(t)\mathbf{R}(t)^\mathrm{T} + \mathbf{R}(t)\dot{\mathbf{R}}(t)^\mathrm{T} = \mathbf{0} 
+    \end{align}
+    $$
+
+    hence,
+    $$
+    \begin{align}
+    \dot{\mathbf{R}}(t)\mathbf{R}(t)^\mathrm{T} = -\left(\dot{\mathbf{R}}(t)\mathbf{R}(t)^\mathrm{T}\right)^\mathrm{T}
+    \end{align}
+    $$
+
+    Thus matrix $\dot{\mathbf{R}}(t)\mathbf{R}(t)^\mathrm{T}$ is a skew-symmetric matrix, which means there exists a 3D vector $\boldsymbol{\omega}(t) \in \mathbb{R}^3$ corresponding to the skew-symmetric matrix via the <i>hat</i> operator. And physically, $\boldsymbol{\omega} \in \mathbb{R}^3$ is the angular velocity:
+    $$
+    \begin{align}
+    \label{eq:phi_hat}
+        \boldsymbol{\omega}(t)^\wedge = \dot{\mathbf{R}}(t)\mathbf{R}(t)^\mathrm{T}
+    \end{align}
+    $$
+
+    In specific, the hat operator for $\boldsymbol{\omega}$ is defined as:
+    $$
+    \begin{align}
+        \boldsymbol{\omega}^\wedge = [\boldsymbol{\omega}]_\times =
+        \begin{bmatrix}
+        0 & -\omega_3 & \omega_2 \\
+        \omega_3 & 0 & -\omega_1 \\
+        -\omega_2 & \omega_1 & 0
+        \end{bmatrix}
+    \end{align}
+    $$
+
+    If we simply manipulate the equation \eqref{eq:phi_hat} by right-multiplying both sides by $\mathbf{R}(t)$, and using the property that $\mathbf{R}(t)$ is an orthogonal matrix, we get the derivative of the rotation matrix over $t$ is simply:
+    $$
+    \begin{align}
+    \label{eq:phi_hat_derivative}
+        \dot{\mathbf{R}}(t) = \boldsymbol{\omega}(t)^\wedge \mathbf{R}(t)
+    \end{align}
+    $$
+
+    When $\mathbf{R(t)} = \mathbf{I}$, the derivative of the rotation matrix over $t$ is simply:
+    $$
+    \begin{align}
+    \dot{\mathbf{R}}(t) = \boldsymbol{\omega}(t)^\wedge; \quad \text{or simply} \quad \dot{\mathbf{R}} = \boldsymbol{\omega}^\wedge; 
+    \end{align}
+    $$
+
+    And at this point, we can see that the tangent space, which is reflecting the derivative of the rotation matrix over $t$ at the identity, is a 3-dimensional real vector space, coinciding with the space of $3 \times 3$ skew-symmetric matrices. This tangent space is denoted as $\mathfrak{so}(3)$, defined as the <b>Lie algebra</b> of $\mathrm{SO}(3)$.<br>
+
+    We mapping between Lie Algebra $\mathfrak{so}(3)$ and vector space $\mathbb{R}^3$is through the linear operators <b>hat</b> and <b>vee</b>,
+    $$
+    \begin{align}
+    \mathbb{R}^3 \rightarrow \mathfrak{so}(3); \quad \boldsymbol{\omega} \mapsto \boldsymbol{\omega}^\wedge = [\boldsymbol{\omega}]_\times
+    \end{align}
+    $$
+    $$
+    \begin{align}
+        \mathfrak{so}(3) \rightarrow \mathbb{R}^3; \quad [\boldsymbol{\omega}]_\times \mapsto [\boldsymbol{\omega}]_\times^\vee = \boldsymbol{\omega}
+    \end{align}
+    $$
+
+    The solution to the differential equation \eqref{eq:phi_hat_derivative} is:
+    $$
+    \begin{align}
+    \mathbf{R}(t) = \exp\left(\boldsymbol{\omega}(t_0)^\wedge t\right)
+    \end{align}
+    $$
+
+    We further assign the rotation vector as $\boldsymbol{\phi} = \boldsymbol{\omega} t$. For notational simplicity, we omit the subscript 0 and define the mapping from a small rotation vector $\boldsymbol{\phi} \in \mathbb{R}^3$ to the rotation matrix as:
+    $$
+    \begin{align}
+    \label{eq:exp_map}
+    \mathbf{R}(t) = \exp\left(\boldsymbol{\phi}^\wedge\right)
+    \end{align}
+    $$
+
+    This mapping is denoted as <b>Exponential Map</b>, which is a mapping from the Lie Algebra ($\mathfrak{so}(3)$) to the Lie Group ($\mathrm{SO}(3)$). This process is also called <b>Retraction</b>. <br>
+
+    Equation \eqref{eq:exp_map} can be rewritten using the Taylor series expansion, and here we separate the vector normal and the magnitude of $\boldsymbol{\phi}$ as $\boldsymbol{\phi} = \mathbf{n} \phi$. 
+    \begin{equation}
+    \begin{aligned}
+        \mathbf{R} &= \exp(\boldsymbol{\phi}^\wedge) = \exp([\boldsymbol{\phi}]_\times) = \sum_{k=0}^\infty \frac{\phi^k}{k!} ([\mathbf{n}]_\times)^k \\
+        &= \mathbf{I} + \phi [\mathbf{n}]_\times + \frac{1}{2!}\phi^2 [\mathbf{n}]_\times^2 + \frac{1}{3!}\phi^3 [\mathbf{n}]_\times^3 + \frac{1}{4!}\phi^4 [\mathbf{n}]_\times^4 + \cdots \\
+    \end{aligned}
+    \end{equation}
+
+    We compute a few powers of $[\mathbf{n}]_\times$ to find some patterns:
+    $$
+    \begin{equation}
+        [\mathbf{n}]_\times^0 = \mathbf{I}, \quad
+        [\mathbf{n}]_\times^1 = [\mathbf{n}]_\times, \quad
+        [\mathbf{n}]_\times^2 = \mathbf{n}\mathbf{n}^\top - \mathbf{I}, \quad
+        [\mathbf{n}]_\times^3 = -[\mathbf{n}]_\times, \quad
+        [\mathbf{n}]_\times^4 = -[\mathbf{n}]_\times^2, \quad \cdots
+    \end{equation}
+    $$
+
+    Then we realize that all powers can be expressed as multiples of $\mathbf{I}$, $[\mathbf{n}]_\times$, or $[\mathbf{n}]_\times^2$. 
+
+    Thus, we can rewrite the series as:
+    \begin{equation}
+    \begin{aligned}
+        \mathbf{R} &= \mathbf{I} + \phi [\mathbf{n}]_\times + \frac{1}{2!}\phi^2 ([\mathbf{n}]_\times^2) - \frac{1}{3!}\phi^3 [\mathbf{n}]_\times - \frac{1}{4!}\phi^4 ([\mathbf{n}]_\times^2) + \cdots \\
+        &= \mathbf{I}
+        + [\mathbf{n}]_{\times} \left( \phi - \frac{1}{3!} \phi^3 + \frac{1}{5!} \phi^5 \cdots \right)
+        +[\mathbf{n}]_{\times}^2 \left( \frac{1}{2!} \phi^2 - \frac{1}{4!} \phi^4 + \frac{1}{6!} \phi^6 \cdots \right) \\
+        &= \mathbf{I} + [\mathbf{n}]_{\times} \sin \phi + [\mathbf{n}]_{\times}^2 (1 - \cos \phi)
+    \end{aligned}
+    \end{equation}
+
+    This equation is called <b>Rodrigues' rotation formula </b>, named after the French mathematician Olinde Rodrigues (1795-1851). <br>
+    
+    The first-order approximation of the Exponential Map is:
+    $$
+    \begin{align}
+        \exp(\boldsymbol{\phi}^\wedge) \approx \mathbf{I} + \boldsymbol{\phi}^\wedge
+    \end{align}
+    $$
+
+    <h4>Lie Algebra of $\mathrm{SE}(3)$</h4>
+
+
+    <h4>Local Operations via Logarithm Map</h4>
+    Next we talk about the <b>Local</b> operation via the <b>Logarithm Map</b>. <br>
+    The logarithm map (at identity):
+    $$
+    \begin{align}
+        \log(\mathbf{R}) = \frac{\boldsymbol{\varphi}}{2 \sin \boldsymbol{\varphi}} (\mathbf{R} - \mathbf{R}^\top)
+    \end{align}
+    $$
+
+    with
+    $$
+    \begin{align}
+        \boldsymbol{\varphi} = \cos^{-1} \left( \frac{\mathrm{tr}(\mathbf{R}) - 1}{2} \right)
+    \end{align}
+    $$
+
+    Vectorized versions:
+    $$
+    \begin{align}
+        \mathrm{Exp}: \mathbb{R}^3 \rightarrow \mathrm{SO}(3), \quad \boldsymbol{\phi} \mapsto \exp(\boldsymbol{\phi}^\wedge)
+    \end{align}
+    $$
+
+    $$
+    \begin{align}
+        \mathrm{Log}: \mathrm{SO}(3) \rightarrow \mathbb{R}^3, \quad \mathbf{R} \mapsto \log(\mathbf{R})^\vee
+    \end{align}
+    $$
+
+    Approximation for small increments:
+
+    $$
+    \begin{align}
+        \mathrm{Exp}(\phi + \delta \phi) \approx \mathrm{Exp}(\phi) \, \mathrm{Exp}(\mathbf{J}_r(\phi) \, \delta \phi)
+    \end{align}
+    $$
+
+    Right Jacobian:
+    $$
+    \begin{align}
+        \mathbf{J}_r(\phi) = \mathbf{I} - \frac{1 - \cos \| \phi \|}{\| \phi \|^2} \phi^\wedge + \frac{\| \phi \| - \sin \| \phi \|}{\| \phi \|^3} (\phi^\wedge)^2
+    \end{align}
+    $$
+
+    And its inverse:
+    $$
+    \begin{align}
+        \mathbf{J}_r^{-1}(\phi) = \mathbf{I} + \frac{1}{2} \phi^\wedge + \left( \frac{1}{\| \phi \|^2} - \frac{1 + \cos \| \phi \|}{2 \| \phi \| \sin \| \phi \|} \right) (\phi^\wedge)^2
+    \end{align}
+    $$
+
+    Another useful property of the exponential map is:
+    $$
+    \begin{align}
+        \mathbf{R} \, \mathrm{Exp}(\phi^\wedge) \, \mathbf{R}^\top = \mathrm{Exp}\left( \mathbf{R} \, \phi^\wedge \, \mathbf{R}^\top \right) = \mathrm{Exp}\left( (\mathbf{R} \phi)^\wedge \right)
+    \end{align}
+    $$
+
+    Which also implies:
+    $$
+    \begin{align}
+        \mathrm{Exp}(\phi^\wedge) \, \mathbf{R} = \mathbf{R} \, \mathrm{Exp}\left( (\mathbf{R}^\top \phi)^\wedge \right)
+    \end{align}
+    $$
+
+    <h2>References</h2>
+    <ol>
+        <li>Visual SLAM: From Theory to Practice, by Xiang Gao, Tao Zhang, Qinrui Yan and Yi Liu</li>
+        <li>On-Manifold Preintegration for Real-Time Visual-Inertial Odometry, by Christian Forster, Luca Carlone, Frank Dellaert, Davide Scaramuzza</li>
+        <li>GTSAM Tutorials: <a href="https://gtsam.org/2021/02/23/uncertainties-part2.html">https://gtsam.org/2021/02/23/uncertainties-part2.html</a></li>
+        <li>A micro Lie theory for state estimation in robotics, by Joan Solà, Jeremie Deray, Dinesh Atchuthan</li>
+    </ol>
+
+</body>
+</html> 
