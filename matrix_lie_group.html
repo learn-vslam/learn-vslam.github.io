@@ -325,6 +325,9 @@
     $$
 
     And at this point, we can see that the tangent space, which is reflecting the derivative of the rotation matrix over $t$ at the identity, is a 3-dimensional real vector space, coinciding with the space of $3 \times 3$ skew-symmetric matrices. This tangent space is denoted as $\mathfrak{so}(3)$, defined as the <b>Lie algebra</b> of $\mathrm{SO}(3)$.<br>
+    \begin{equation}    
+        \mathfrak{so}(3) = \left\{ \boldsymbol{\omega} \in \mathbb{R}^3 \quad \text{or} \quad \boldsymbol{\omega}^\wedge \in \mathbb{R}^{3 \times 3} \right\}
+    \end{equation}
 
     We mapping between Lie Algebra $\mathfrak{so}(3)$ and vector space $\mathbb{R}^3$is through the linear operators <b>hat</b> and <b>vee</b>,
     $$
@@ -352,6 +355,8 @@
     \mathbf{R}(t) = \exp\left(\boldsymbol{\phi}^\wedge\right)
     \end{align}
     $$
+
+    Note that $\boldsymbol{\phi} \in \mathfrak{so}(3)$ is also the Lie Algebra of $\mathrm{SO}(3)$.
 
     This mapping is denoted as <b>Exponential Map</b>, which is a mapping from the Lie Algebra ($\mathfrak{so}(3)$) to the Lie Group ($\mathrm{SO}(3)$). This process is also called <b>Retraction</b>. <br>
 
@@ -397,25 +402,105 @@
     $$
 
     <h4>Lie Algebra of $\mathrm{SE}(3)$</h4>
+    Similarly, we derive the Lie Algebra of $\mathrm{SE}(3)$, denoted as $\mathfrak{se}(3)$. $\mathfrak{se}(3)$ is a 6-dimensional real vector space $\boldsymbol{\xi}^\wedge$, coinciding with the space of $4 \times 4$ matrices. Note that $\boldsymbol{\xi}^\wedge$ is no longer a skew-symmetric matrix.
+    \begin{equation}
+    \mathfrak{se}(3) = \left\{ 
+        \boldsymbol{\xi} = 
+        \begin{bmatrix}
+        \boldsymbol{\rho} \\
+        \boldsymbol{\phi}
+        \end{bmatrix}
+        \in \mathbb{R}^6, \ \boldsymbol{\rho} \in \mathbb{R}^3, \ \boldsymbol{\phi} \in \mathfrak{so}(3), \ 
+        \boldsymbol{\xi}^\wedge = 
+        \begin{bmatrix}
+        \boldsymbol{\phi}^\wedge & \boldsymbol{\rho} \\
+        \mathbf{0}^{\top} & 0
+        \end{bmatrix}
+        \in \mathbb{R}^{4 \times 4}
+    \right\}
+    \end{equation}
 
+    There the vector $\boldsymbol{\rho}$ physically represents the a small translation.
+    
+    The exponential map of $\mathfrak{se}(3)$ is:
+    \begin{equation}
+        \exp(\boldsymbol{\xi}^\wedge) =
+        \begin{bmatrix}
+            \sum\limits_{k=0}^\infty \frac{1}{n!} (\boldsymbol{\phi}^\wedge)^n & \sum\limits_{k=0}^\infty \frac{1}{(n+1)!} (\boldsymbol{\phi}^\wedge)^n \boldsymbol{\rho} \\
+            \mathbf{0}^{\top} & 1
+            \end{bmatrix}
+            =
+            \begin{bmatrix}
+            \mathbf{R} & \mathbf{t} \\
+            \mathbf{0}^{\top} & 1
+        \end{bmatrix}
+        = \mathbf{T}
+    \end{equation}
 
-    <h4>Local Operations via Logarithm Map</h4>
-    Next we talk about the <b>Local</b> operation via the <b>Logarithm Map</b>. <br>
-    The logarithm map (at identity):
-    $$
-    \begin{align}
-        \log(\mathbf{R}) = \frac{\boldsymbol{\varphi}}{2 \sin \boldsymbol{\varphi}} (\mathbf{R} - \mathbf{R}^\top)
-    \end{align}
-    $$
+    We see that after passing the exponential map, the translation part is multiplied by a linear jacobian matrix $\mathbf{J}(\boldsymbol{\phi})$, hence
+    \begin{equation}
+        \mathbf{t} = \mathbf{J}(\boldsymbol{\phi}) \boldsymbol{\rho}
+    \end{equation}
 
-    with
-    $$
-    \begin{align}
-        \boldsymbol{\varphi} = \cos^{-1} \left( \frac{\mathrm{tr}(\mathbf{R}) - 1}{2} \right)
-    \end{align}
-    $$
+    where $\mathbf{J}(\boldsymbol{\phi})$ is
+    \begin{equation}
+        \mathbf{J}(\boldsymbol{\phi}) = \sum\limits_{k=0}^\infty \frac{1}{(n+1)!} (\boldsymbol{\phi}^\wedge)^n
+    \end{equation}
 
-    Vectorized versions:
+    We will visit back this Jacobian matrix $\mathbf{J}(\boldsymbol{\phi})$ in the next section.
+
+    <h3>Local Operations via Logarithm Map</h3>
+    We've walked thought the mapping from Lie Algebra to Lie Group. Next we talk about the inverse process, which is called <b>Local</b> operation via the <b>Logarithm Map</b>, which literally means take the local linear approximation of the Lie Group. <br>
+
+    Again, starts from $\mathrm{SO}(3)$, the logarithm of a rotation matrix $\mathbf{R} \in \mathrm{SO}(3)$ can be derived from Rodrigues' formula:
+    \begin{equation}
+        \mathbf{R} = \exp(\phi [\mathbf{n}_\times]) = \mathbf{I} + \sin\phi\, [\mathbf{n}_\times] + (1 - \cos\phi)\, ([\mathbf{n}_\times])^2
+    \end{equation}
+
+    We take the trace operator on both side. and find the angle $\phi$ from $\mathbf{R}$:
+    \begin{equation}
+    \begin{aligned}
+        \mathrm{tr}(\mathbf{R})
+        &= \mathrm{tr}(\mathbf{I}) + \sin(\phi) \mathrm{tr}([\mathbf{n}_\times]) + (1 - \cos(\phi)) \mathrm{tr}([\mathbf{n}_\times]^2) \\
+        &= 3 + \sin(\phi) \cdot 0 + (1 - \cos(\phi)) (-2) \\
+        &= 1 + 2\cos(\phi)
+    \end{aligned}
+    \end{equation}
+
+    Hence $\phi$ is solved as:
+    \begin{equation}
+        \phi = \cos^{-1}\left(\frac{\mathrm{tr}(\mathbf{R}) - 1}{2}\right)
+    \end{equation}
+
+    Then we can find the axis $\mathbf{n}$ from $\mathbf{R}$:
+    Apply the Rodrigues' formula to $\mathbf{R}^{-1} = \mathbf{R}^\top$, we get:
+    \begin{equation}
+        \mathbf{R}^{\top} = \exp(-\phi [\mathbf{n}_\times]) = \mathbf{I} +  \sin (-\phi) [\mathbf{n}]_{\times} + (1 - \cos (-\phi)) [\mathbf{n}]_{\times}^2 
+    \end{equation}
+    
+    Do a simple substitution, we get:
+    \begin{equation}
+        \mathbf{R} - \mathbf{R}^\top = 2\sin\phi\, [\mathbf{n}_\times]
+    \end{equation}
+
+    then the normal vector $\mathbf{n}$ is solved as:
+    \begin{equation}
+        [\mathbf{n}_\times] = \frac{\mathbf{R} - \mathbf{R}^\top}{2\sin\phi}
+    \end{equation}
+
+    Finally, the logarithm of rotation matrix $\mathbf{R}$ is:
+    \begin{equation}
+        \ln(\mathbf{R}) = \phi [\mathbf{n}_\times] = \frac{\phi (\mathbf{R} - \mathbf{R}^\top)}{2\sin\phi}
+    \end{equation}
+
+    The logarithm map can also be derived from the Taylor expansion of the Logarithm function:
+    \begin{equation}
+        \ln(\mathbf{R}) = \sum\limits_{k=1}^\infty \frac{(-1)^{k+1}}{k} (\mathbf{R} - \mathbf{I})^k
+    \end{equation}
+
+    And here note that $\mathbf{R} \neq \mathbf{I}$ in general. <br>
+
+    In summary, the mapping between Lie Algebra and Lie Group is through the exponential map and logarithm map:
     $$
     \begin{align}
         \mathrm{Exp}: \mathbb{R}^3 \rightarrow \mathrm{SO}(3), \quad \boldsymbol{\phi} \mapsto \exp(\boldsymbol{\phi}^\wedge)
@@ -424,22 +509,41 @@
 
     $$
     \begin{align}
-        \mathrm{Log}: \mathrm{SO}(3) \rightarrow \mathbb{R}^3, \quad \mathbf{R} \mapsto \log(\mathbf{R})^\vee
+        \mathrm{Log}: \mathrm{SO}(3) \rightarrow \mathbb{R}^3, \quad \mathbf{R} \mapsto \ln(\mathbf{R})^\vee
     \end{align}
     $$
 
-    Approximation for small increments:
+    <h3> BCH Formula </h3>
+    For regular matrices $\mathbf{X}, \mathbf{Y} \in \mathbb{R}^{n \times n}$, we have
+    \begin{equation}
+        \ln(\exp(\mathbf{X}) \exp(\mathbf{Y})) = \ln(\exp(\mathbf{X} + \mathbf{Y})) = \mathbf{X} + \mathbf{Y}
+    \end{equation}
 
+    This does not hold for Lie Algebra, though. To connect two Lie algebra elements $\mathbf{A}, \mathbf{B} \in \mathfrak{so}(3)$, we can use the <b> Baker-Campbell-Hausdorff (BCH) formula </b>:
+    \begin{equation}
+        \ln\left( \exp(\mathbf{A}) \exp(\mathbf{B}) \right)
+        = \mathbf{A} + \mathbf{B}
+        + \frac{1}{2} [\mathbf{A}, \mathbf{B}]
+        + \frac{1}{12} [\mathbf{A}, [\mathbf{A}, \mathbf{B}]]
+        - \frac{1}{12} [\mathbf{B}, [\mathbf{A}, \mathbf{B}]]
+        + \cdots
+    \end{equation}
+
+    Where operation $[, ]$ denotes the Lie bracet. This formula is very useful for small perturbations, which is then used to approximate the Jacobian of Lie Algebra. We will get there right away.<br>
+
+
+    <h2> Jacobian of Lie Algebra</h2>
+    Given a small pertabation $\delta \boldsymbol{\phi}$, we can approximate the exponential map as:
     $$
     \begin{align}
-        \mathrm{Exp}(\phi + \delta \phi) \approx \mathrm{Exp}(\phi) \, \mathrm{Exp}(\mathbf{J}_r(\phi) \, \delta \phi)
+        \mathrm{exp}(\boldsymbol{\phi} + \delta \boldsymbol{\phi}) \approx \mathrm{exp}(\boldsymbol{\phi}) \, \mathrm{exp}(\mathbf{J}_r(\boldsymbol{\phi}) \, \delta \boldsymbol{\phi})
     \end{align}
     $$
 
-    Right Jacobian:
+    where $\mathbf{J}_r(\boldsymbol{\phi})$ is the <b>right Jacobian</b> of $\boldsymbol{\phi}$:
     $$
     \begin{align}
-        \mathbf{J}_r(\phi) = \mathbf{I} - \frac{1 - \cos \| \phi \|}{\| \phi \|^2} \phi^\wedge + \frac{\| \phi \| - \sin \| \phi \|}{\| \phi \|^3} (\phi^\wedge)^2
+        \mathbf{J}_r(\boldsymbol{\phi}) = \mathbf{I} - \frac{1 - \cos \phi}{\| \boldsymbol{\phi} \|^2} \boldsymbol{\phi}^\wedge + \frac{\| \boldsymbol{\phi} \| - \sin \| \boldsymbol{\phi} \|}{\| \boldsymbol{\phi} \|^3} (\boldsymbol{\phi}^\wedge)^2
     \end{align}
     $$
 
