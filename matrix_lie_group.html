@@ -420,34 +420,58 @@
     \right\}
     \end{equation}
 
-    There the vector $\boldsymbol{\rho}$ physically represents the a small translation.
+    There the vector $\boldsymbol{\rho}$ physically represents the a small translation. <br>
     
     The exponential map of $\mathfrak{se}(3)$ is:
     \begin{equation}
-        \exp(\boldsymbol{\xi}^\wedge) =
+    \begin{aligned}
+        \exp(\boldsymbol{\xi}^\wedge) &= \sum_{k=0}^{\infty} \frac{1}{k!} ({\boldsymbol{\xi}^\wedge})^k \\
+        &= \sum_{k=0}^{\infty} \frac{1}{k!}  
         \begin{bmatrix}
-            \sum\limits_{k=0}^\infty \frac{1}{n!} (\boldsymbol{\phi}^\wedge)^n & \sum\limits_{k=0}^\infty \frac{1}{(n+1)!} (\boldsymbol{\phi}^\wedge)^n \boldsymbol{\rho} \\
+        \boldsymbol{\phi} \\
+        \boldsymbol{\rho} 
+        \end{bmatrix}^\wedge \\
+        &= \sum_{k=0}^{\infty} \frac{1}{k!}  
+        \begin{bmatrix}
+        {\boldsymbol{\phi}^\wedge} & \boldsymbol{\rho} \\
+        \mathbf{0}^T & 0
+        \end{bmatrix}^k \\
+        &= \sum_{k=0}^{\infty} \frac{1}{k!}  
+        \begin{bmatrix}
+            (\boldsymbol{\phi}^\wedge)^k & (\boldsymbol{\phi}^\wedge)^{k-1} \boldsymbol{\rho} \\
+            \mathbf{0}^T & 0
+        \end{bmatrix} \\
+        &=
+        \begin{bmatrix}
+            \sum\limits_{k=0}^\infty \frac{1}{k!} (\boldsymbol{\phi}^\wedge)^k & \sum\limits_{k=0}^\infty \frac{1}{(k+1)!} (\boldsymbol{\phi}^\wedge)^k \boldsymbol{\rho} \\
             \mathbf{0}^{\top} & 1
-            \end{bmatrix}
-            =
-            \begin{bmatrix}
+        \end{bmatrix} \\
+        &= \begin{bmatrix}
+        \exp(\boldsymbol{\phi}^\wedge) & \mathbf{J}(\boldsymbol{\phi}) \boldsymbol{\rho} \\
+        \mathbf{0}^{\top} & 1
+        \end{bmatrix} \\
+        &=
+        \begin{bmatrix}
             \mathbf{R} & \mathbf{t} \\
             \mathbf{0}^{\top} & 1
         \end{bmatrix}
         = \mathbf{T}
+    \end{aligned}
     \end{equation}
 
-    We see that after passing the exponential map, the translation part is multiplied by a linear jacobian matrix $\mathbf{J}(\boldsymbol{\phi})$, hence
+    We see that after passing the exponential map, the translation part is multiplied by a linear Jacobian matrix $\mathbf{J}(\boldsymbol{\phi})$, hence
     \begin{equation}
         \mathbf{t} = \mathbf{J}(\boldsymbol{\phi}) \boldsymbol{\rho}
     \end{equation}
 
-    where $\mathbf{J}(\boldsymbol{\phi})$ is
+    where $\mathbf{J}(\boldsymbol{\phi})$ is the left Jacobian of $\boldsymbol{\phi}$:
     \begin{equation}
-        \mathbf{J}(\boldsymbol{\phi}) = \sum\limits_{k=0}^\infty \frac{1}{(n+1)!} (\boldsymbol{\phi}^\wedge)^n
+        \mathbf{J}(\boldsymbol{\phi}) = \sum\limits_{k=0}^\infty \frac{1}{(k+1)!} (\boldsymbol{\phi}^\wedge)^k
     \end{equation}
 
-    We will visit back this Jacobian matrix $\mathbf{J}(\boldsymbol{\phi})$ in the next section.
+    Why this term is the left Jacobian of $\boldsymbol{\phi}$?
+    
+    We will visit more about Jacobian matrix $\mathbf{J}(\boldsymbol{\phi})$ in the next section. <br>
 
     <h3>Local Operations via Logarithm Map</h3>
     We've walked thought the mapping from Lie Algebra to Lie Group. Next we talk about the inverse process, which is called <b>Local</b> operation via the <b>Logarithm Map</b>, which literally means take the local linear approximation of the Lie Group. <br>
@@ -571,6 +595,7 @@
     <h2>References</h2>
     <ol>
         <li>Visual SLAM: From Theory to Practice, by Xiang Gao, Tao Zhang, Qinrui Yan and Yi Liu</li>
+        <li>State Estimation for Robotics, by Tim Barfoot</li>
         <li>On-Manifold Preintegration for Real-Time Visual-Inertial Odometry, by Christian Forster, Luca Carlone, Frank Dellaert, Davide Scaramuzza</li>
         <li>GTSAM Tutorials: <a href="https://gtsam.org/2021/02/23/uncertainties-part2.html">https://gtsam.org/2021/02/23/uncertainties-part2.html</a></li>
         <li>A micro Lie theory for state estimation in robotics, by Joan Solà, Jeremie Deray, Dinesh Atchuthan</li>
