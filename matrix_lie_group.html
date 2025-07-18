@@ -660,6 +660,63 @@
     \end{cases}
     \]
 
+    The left and right Jacobians and their inverses are given explicitly as:
+    <div style="margin-left:2em;">
+    <div>
+    $$
+    \mathbf{J}_l = \mathbf{J} = \frac{\sin \theta}{\theta} \mathbf{I} 
+    + \left(1 - \frac{\sin \theta}{\theta} \right) \mathbf{a} \mathbf{a}^T 
+    + \frac{1 - \cos \theta}{\theta} \mathbf{a}^\wedge
+    $$
+    </div>
+    <div>
+    $$
+    \mathbf{J}_l^{-1} = \frac{\theta}{2} \cot \frac{\theta}{2} \mathbf{I} 
+    + \left( 1 - \frac{\theta}{2} \cot \frac{\theta}{2} \right) \mathbf{a} \mathbf{a}^T 
+    - \frac{\theta}{2} \mathbf{a}^\wedge
+    $$
+    </div>
+    <div>
+    $$
+    \mathbf{J}_r(\boldsymbol{\phi}) = \mathbf{J}_l(-\boldsymbol{\phi})
+    $$
+    </div>
+    </div>
+
+    The BCH formula and its approximations for small perturbations can be written as:
+    <div style="margin-left:2em;">
+    <div>
+    $$
+    \exp\left( \Delta \boldsymbol{\phi}^\wedge \right) 
+    \exp\left( \boldsymbol{\phi}^\wedge \right) 
+    = \exp \left( \left( \boldsymbol{\phi} + \mathbf{J}_l^{-1}(\boldsymbol{\phi}) \Delta \boldsymbol{\phi} \right)^\wedge \right)
+    $$
+    </div>
+    <div>
+    $$
+    \exp \left( (\boldsymbol{\phi} + \Delta \boldsymbol{\phi})^\wedge \right) 
+    = \exp \left( (\mathbf{J}_l \Delta \boldsymbol{\phi})^\wedge \right) 
+    \exp \left( \boldsymbol{\phi}^\wedge \right) 
+    = \exp \left( \boldsymbol{\phi}^\wedge \right) 
+    \exp \left( (\mathbf{J}_r \Delta \boldsymbol{\phi})^\wedge \right)
+    $$
+    </div>
+    <div>
+    $$
+    \exp \left( \Delta \boldsymbol{\xi}^\wedge \right) 
+    \exp \left( \boldsymbol{\xi}^\wedge \right) 
+    \approx \exp \left( \left( \left( \mathcal{J}_l^{-1} \Delta \boldsymbol{\xi} + \boldsymbol{\xi} \right)^\wedge \right) \right)
+    $$
+    </div>
+    <div>
+    $$
+    \exp \left( \boldsymbol{\xi}^\wedge \right) 
+    \exp \left( \Delta \boldsymbol{\xi}^\wedge \right) 
+    \approx \exp \left( \left( \left( \mathcal{J}_r^{-1} \Delta \boldsymbol{\xi} + \boldsymbol{\xi} \right)^\wedge \right) \right)
+    $$
+    </div>
+    </div>
+
     <h2> Derivatives</h2>
     <h3> Definition</h3>
     \begin{equation}
