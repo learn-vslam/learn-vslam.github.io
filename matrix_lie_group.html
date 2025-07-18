@@ -264,6 +264,39 @@
         <div class="figure-caption">Illustration of manifold and its local approximation of tangent space.</div>
     </div>
 
+    <h3> Basics</h3>
+    Hat Operation
+    
+    \[
+    \mathbf{a} \times \mathbf{b} =
+    \begin{vmatrix}
+    \mathbf{e}_1 & \mathbf{e}_2 & \mathbf{e}_3 \\
+    a_1 & a_2 & a_3 \\
+    b_1 & b_2 & b_3
+    \end{vmatrix}
+    =
+    \begin{bmatrix}
+    a_2 b_3 - a_3 b_2 \\
+    a_3 b_1 - a_1 b_3 \\
+    a_1 b_2 - a_2 b_1
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    0 & -a_3 & a_2 \\
+    a_3 & 0 & -a_1 \\
+    -a_2 & a_1 & 0
+    \end{bmatrix}
+    \mathbf{b}
+    \triangleq \widehat{\mathbf{a}} \mathbf{b}.
+    \]
+
+
+    Matrix Exponential
+
+    \[
+    \exp(\mathbf{A}) = \sum_{n=0}^{\infty} \frac{1}{n!} \mathbf{A}^n.
+    \]
+
     <h3>Lie Algebra, Retraction and Exponential Map</h3>
     To better understand Lie Group/Manifold and Lie Algebra, we need to bring a little taste of differential geometry here. <br>
 
@@ -332,7 +365,8 @@
     We will also give the defination of Lie bracket, which is a the operation of Lie Algebra measuring the difference between multiplying them in one order versus the other. The Lie bracket of $\mathfrak{so}(3)$ is defined as:
     $$
     \begin{align}
-        [\boldsymbol{\omega}_1, \boldsymbol{\omega}_2] = (\boldsymbol{\omega}_1 \boldsymbol{\omega}_2 - \boldsymbol{\omega}_2 \boldsymbol{\omega}_1)^\vee
+    [\boldsymbol{\omega}_1, \boldsymbol{\omega}_2] 
+    = \left( \boldsymbol{\omega}_1^{\wedge} \boldsymbol{\omega}_2^{\wedge} - \boldsymbol{\omega}_2^{\wedge} \boldsymbol{\omega}_1^{\wedge} \right)^{\vee}
     \end{align}
     $$
 
@@ -407,6 +441,8 @@
         \exp(\boldsymbol{\phi}^\wedge) \approx \mathbf{I} + \boldsymbol{\phi}^\wedge
     \end{align}
     $$
+
+    
 
     <h4>Lie Algebra of $\mathrm{SE}(3)$</h4>
     Similarly, we derive the Lie Algebra of $\mathrm{SE}(3)$, denoted as $\mathfrak{se}(3)$. $\mathfrak{se}(3)$ is a 6-dimensional real vector space $\boldsymbol{\xi}^\wedge$, coinciding with the space of $4 \times 4$ matrices. Note that $\boldsymbol{\xi}^\wedge$ is no longer a skew-symmetric matrix.
@@ -592,6 +628,10 @@
     \end{align}
     $$
 
+    $$
+    \mathbf{J}_r(\boldsymbol{\phi}) = \mathbf{J}_l(-\boldsymbol{\phi}).
+    $$
+
     Another useful property of the exponential map is:
     $$
     \begin{align}
@@ -605,6 +645,46 @@
         \mathrm{Exp}(\phi^\wedge) \, \mathbf{R} = \mathbf{R} \, \mathrm{Exp}\left( (\mathbf{R}^\top \phi)^\wedge \right)
     \end{align}
     $$
+
+    In particular, consider the case of $\mathrm{SO}(3)$ and 
+    $\ln\left(\exp(\hat{\boldsymbol{\phi}}_1)\exp(\hat{\boldsymbol{\phi}}_2)\right)^\vee$, 
+    when $\boldsymbol{\phi}_1$ or $\boldsymbol{\phi}_2$ is small. 
+    Small items with more than quadratic can be ignored when taking derivatives. 
+    At this time, BCH has a linear approximation:
+
+    \[
+    \ln\left(\exp(\hat{\boldsymbol{\phi}}_1)\exp(\hat{\boldsymbol{\phi}}_2)\right)^\vee \approx
+    \begin{cases}
+    \mathbf{J}_l(\boldsymbol{\phi}_2)^{-1} \boldsymbol{\phi}_1 + \boldsymbol{\phi}_2 & \text{when } \boldsymbol{\phi}_1 \text{ is a small amount}, \\
+    \mathbf{J}_r(\boldsymbol{\phi}_1)^{-1} \boldsymbol{\phi}_2 + \boldsymbol{\phi}_1 & \text{when } \boldsymbol{\phi}_2 \text{ is a small amount}.
+    \end{cases}
+    \]
+
+    <h2> Derivatives</h2>
+    <h3> Definition</h3>
+    \begin{equation}
+    \min_{\mathbf{T}} J(\mathbf{T}) = \sum_{i=1}^{N} \left\| \mathbf{z}_i - \mathbf{T} \mathbf{p}_i \right\|_2^2.
+    \end{equation}
+
+    \begin{align*}
+    \frac{\partial \left( \exp(\hat{\boldsymbol{\phi}}) \mathbf{p} \right)}{\partial \boldsymbol{\phi}}
+    &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{\exp\left((\boldsymbol{\phi} + \delta \boldsymbol{\phi})^\wedge\right) \mathbf{p} - \exp(\hat{\boldsymbol{\phi}}) \mathbf{p}}{\delta \boldsymbol{\phi}} \\
+    &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{\exp\left((\mathbf{J}_l \delta \boldsymbol{\phi})^\wedge\right) \exp(\hat{\boldsymbol{\phi}}) \mathbf{p} - \exp(\hat{\boldsymbol{\phi}}) \mathbf{p}}{\delta \boldsymbol{\phi}} \\
+    &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{\left( \mathbf{I} + (\mathbf{J}_l \delta \boldsymbol{\phi})^\wedge \right) \exp(\hat{\boldsymbol{\phi}}) \mathbf{p} - \exp(\hat{\boldsymbol{\phi}}) \mathbf{p}}{\delta \boldsymbol{\phi}} \\
+    &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{(\mathbf{J}_l \delta \boldsymbol{\phi})^\wedge \exp(\hat{\boldsymbol{\phi}}) \mathbf{p}}{\delta \boldsymbol{\phi}} \\
+    &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{ -\left( \exp(\hat{\boldsymbol{\phi}}) \mathbf{p} \right)^\wedge \mathbf{J}_l \delta \boldsymbol{\phi} }{\delta \boldsymbol{\phi}} \\
+    &= -\left( \mathbf{R} \mathbf{p} \right)^\wedge \mathbf{J}_l.
+    \end{align*}
+
+    <h3> Finite Difference</h3>
+    \begin{align*}
+    \frac{\partial (\mathbf{R} \mathbf{p})}{\partial \boldsymbol{\varphi}} 
+    &= \lim_{\boldsymbol{\varphi} \to 0} \frac{\exp(\hat{\boldsymbol{\varphi}}) \exp(\hat{\boldsymbol{\phi}}) \mathbf{p} - \exp(\hat{\boldsymbol{\phi}}) \mathbf{p}}{\boldsymbol{\varphi}} \\
+    &= \lim_{\boldsymbol{\varphi} \to 0} \frac{(\mathbf{I} + \hat{\boldsymbol{\varphi}}) \exp(\hat{\boldsymbol{\phi}}) \mathbf{p} - \exp(\hat{\boldsymbol{\phi}}) \mathbf{p}}{\boldsymbol{\varphi}} \\
+    &= \lim_{\boldsymbol{\varphi} \to 0} \frac{\hat{\boldsymbol{\varphi}} \mathbf{R} \mathbf{p}}{\boldsymbol{\varphi}} 
+    = \lim_{\boldsymbol{\varphi} \to 0} \frac{ -(\mathbf{R} \mathbf{p})^\wedge \boldsymbol{\varphi} }{ \boldsymbol{\varphi} } 
+    = -(\mathbf{R} \mathbf{p})^\wedge.
+    \end{align*}
 
     <h2>References</h2>
     <ol>
