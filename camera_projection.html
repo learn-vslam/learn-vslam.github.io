@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,400,900">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:300,400,700">
+    <link rel="stylesheet" href="../../latex.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          processEscapes: true
+        },
+        TeX: {
+          equationNumbers: {
+            autoNumber: "AMS",
+            useLabelIds: true
+          }
+        },
+        "HTML-CSS": {
+          availableFonts: ["STIX"],
+          linebreaks: { automatic: true },
+          imageFont: null
+        }
+      });
+    </script>
+    <script type="text/javascript" async
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+    </script>
+    <meta charset="UTF-8">
+    <base target="_blank">
+    <title>Matrix Lie Group</title>
+    <style>
+        body {
+            font-family: 'Lato', 'Google Sans', sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px 40px;
+            font-size: 20px;
+            counter-reset: figure-counter;
+            text-align: justify;
+        }
+        h1 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            text-align: center;
+            margin-bottom: 2em;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.8em;
+            margin-top: 1.5em;
+        }
+        h3 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.4em;
+            margin-top: 1.2em;
+        }
+        .figure {
+            text-align: center;
+            margin: 30px 0;
+            width: 100%;
+            counter-increment: figure-counter;
+        }
+        .figure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .figure-caption {
+            font-style: italic;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .figure-caption::before {
+            content: "Figure " counter(figure-counter) ": ";
+            font-weight: bold;
+            font-style: normal;
+        }
+        .subfigure-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 20px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .subfigure {
+            flex: 0 1 600px;
+            text-align: center;
+        }
+        .subfigure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            min-width: 400px;
+        }
+        .subfigure .figure-caption {
+            font-style: italic;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .subfigure .figure-caption::before {
+            content: none;
+        }
+        .MathJax {
+            font-size: 1.1em !important;
+        }
+        .MathJax_Display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin: 1em 0;
+        }
+        .equation-container {
+            display: table;
+            width: 100%;
+            margin: 1.5em 0;
+        }
+        .equation-content {
+            display: table-cell;
+            width: 100%;
+        }
+        .figure-label::before {
+            content: "Figure " counter(figure-counter) ":";
+            font-weight: bold;
+            margin-right: 0.5em;
+        }
+        /* MathJax display styles */
+        .MJXc-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .MJXc-display::-webkit-scrollbar {
+            width: 5px;
+            height: 2px;
+        }
+        .MJXc-display::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .MJXc-display::-webkit-scrollbar-thumb {
+            background: #ddd;
+            visibility:hidden;
+        }
+        .MJXc-display:hover::-webkit-scrollbar-thumb {
+            visibility:visible;
+        }
+    </style>
+
+</head>
+<body>
+    <h1>Cameras, Sensors and Projection Model</h1>
+    
+    <h2>Common Sensors used in Visual SLAM</h2>
+    Caemras have been evoving really fast. The following are some of the common sensors used in Visual SLAM:
+    <ul>
+        <li>Realsense D455, D435i</li>
+        <li>Oak-D, Oak-D Pro</li>
+        <li>Zed 2</li>
+    </ul>
+
+
+    <h2>Pinhole Projection Model</h2>
+    Camera projection model
+    \begin{equation}
+    \mathbf{x} = \mathbf{P} \mathbf{X}_W
+    \end{equation}
+
+    \begin{equation}
+    \tilde{\mathbf{X}}_C = \mathbf{T} \tilde{\mathbf{X}}_W
+    =
+    \begin{bmatrix} 
+    \mathbf{R} & \mathbf{t}\\
+    \mathbf{0}^{\top} & 1 \\
+    \end{bmatrix}  
+    \tilde{\mathbf{X}}_W
+    \end{equation}
+
+    camera intrinsic derivation:
+    \begin{equation}
+    \frac{Z}{f_y} = \frac{Y}{y}
+    \quad
+    \quad
+    \frac{Z}{f_x} = \frac{X}{x}
+    \end{equation}
+
+    \begin{equation}
+    y = \frac{f_y Y}{Z}
+    \quad
+    \quad
+    x = \frac{f_x X}{Z}
+    \end{equation}
+
+    which is a mapping from 3D Euclidean space to 2D Euclidean space,
+    \begin{equation}
+    \begin{bmatrix} 
+    X \\
+    Y \\
+    Z \\
+    \end{bmatrix} 
+    \longrightarrow
+    \begin{bmatrix} 
+    \frac{f_x X}{Z} \\
+    \\
+    \frac{f_y Y}{Z} \\
+    \end{bmatrix} 
+    \end{equation}
+
+    considering the principal point, the final coordinate of the projected 3D point in camera coordinate system $X_c$ is, which is denoted as $x_i$
+    \begin{equation}
+    \mathbf{x}_i =
+    \begin{bmatrix}
+    u \\
+    v \\
+    \end{bmatrix}
+    =
+    \begin{bmatrix} 
+    \frac{f_x X}{Z} + c_x\\
+    \\
+    \frac{f_y Y}{Z} + c_y\\
+    \end{bmatrix} 
+    \end{equation}
+
+    \begin{equation}
+    \tilde {\mathbf{x}}_i
+    =
+    \begin{bmatrix}
+    u \\
+    v \\
+    1 \\
+    \end{bmatrix}
+    =
+    \begin{bmatrix} 
+    \frac{f_x X}{Z} + c_x\\
+    \\
+    \frac{f_y Y}{Z} + c_y\\
+    \\
+    1 \\
+
+    \end{bmatrix} 
+    \end{equation}
+
+    now we want to write it in matrix form,
+    \begin{equation}
+    \tilde {\mathbf{x}}_i = \mathbf{K} \mathbf{X}_C  
+    \end{equation}
+
+    \begin{equation}
+    \begin{bmatrix} 
+    f_x & 0 & c_x \\
+    0 & f_y & c_y \\
+    0 & 0 & 1 \\
+    \end{bmatrix}  
+    \begin{bmatrix}
+    X \\
+    Y \\
+    Z \\
+    \end{bmatrix} 
+    =
+    \begin{bmatrix}
+    f_x X + c_x Z \\
+    f_y Y + c_y Z \\
+    Z
+    \end{bmatrix}
+    =
+    Z
+    \begin{bmatrix}
+    f_x X \verb|/| Z + c_x \\
+    f_y Y \verb|/| Z + c_y \\
+    1
+    \end{bmatrix}
+    \end{equation}
+
+    $\mathbf{K}$ is camera intrinsic matrix
+    \begin{equation}
+    \mathbf{K} = 
+    \begin{bmatrix} 
+    f_x & 0 & c_x \\
+    0 & f_y & c_y \\
+    0 & 0 & 1 \\
+    \end{bmatrix} 
+    \end{equation}
+
+    Generally, we want to have all of the coordinates in homogeneous coordinates, which gives
+    \begin{equation}
+    \tilde {\mathbf{x}}_i = \mathbf{K} \tilde {\mathbf{X}}_C =
+    \begin{bmatrix} 
+    f_x & 0 & c_x & 0\\
+    0 & f_y & c_y & 0 \\
+    0 & 0 & 1 & 0\\
+    \end{bmatrix} 
+    \begin{bmatrix}
+    X \\
+    Y \\
+    Z \\
+    1
+    \end{bmatrix} 
+    \end{equation}
+
+    However, this is not the 3D points in world frame, we need to inverse the camera extrinsic matrix to get the 3D points in world frame, combine the camera extrinsic together,
+    \begin{equation}
+    \tilde {\mathbf{x}}_i = \mathbf{K} \tilde {\mathbf{X}}_C 
+    = \mathbf{K} \mathbf{T}_{CW}
+    \tilde {\mathbf{X}}_W
+    \end{equation}
+
+    and matrix $\mathbf{T}_{CW}$ is the camera extrinsic matrix, which happens to be the inverse of $\mathbf{T}_{WC}$, the camera pose in world frame.
+
+    If we want to recover the 3D points in camera frame, we can try to back project the 3D image point by inversing the camera intrinsic matrix,
+    \begin{equation}
+    \begin{aligned}
+    \mathbf{X}_C &= \mathbf{K}^{-1} \tilde {\mathbf{x}}_i \\
+    &= 
+    \begin{bmatrix}
+    \frac{1}{f_x} & 0 & -\frac{c_x}{f_x} \\
+    0 & \frac{1}{f_y} & -\frac{c_y}{f_y} \\
+    0 & 0 & 1
+    \end{bmatrix}
+    \begin{bmatrix}
+    u \\
+    v \\
+    1
+    \end{bmatrix} \\
+    &=
+    \begin{bmatrix}
+    \frac{u - c_x}{f_x} \\
+    \frac{v - c_y}{f_y} \\
+    1
+    \end{bmatrix}
+    \end{aligned}
+    \end{equation}
+
+    What is missing comparing with the original 3D points? We need the depth information $Z$, multiply the depth information we obtain,
+    \begin{equation}
+    \mathbf{X}_C =
+    \begin{bmatrix}
+    \frac{(u - c_x)Z}{f_x} \\
+    \frac{(v - c_y)Z}{f_y} \\
+    Z
+    \end{bmatrix}
+    \end{equation}
+
+    How to get the depth information? Not possible from a single view, we will need at least two views, or specific depth sensors.
+
+    <h2>Stereo Camera and Stereo Matching</h2>
+
+    <h2>Depth Camera</h2>
+
+
+</body>
