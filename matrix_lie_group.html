@@ -161,7 +161,8 @@
 </head>
 <body>
     <h1>Matrix Lie Group</h1>
-    In this chapter, we will talk about the matrix Lie Group and its Lie Algebra. Matrix Lie Group and Algebra provides rigious math models for rigid body transformation and rotation matrix. Understanding Matrix Lie Group and Lie Algebra is not only important for knowing rigid body trasnformation further, but also the keys to the optimization problems over rigid body transformation, such as reprojection error optimization in visual SLAM. <br>
+
+    In this chapter, we will talk about the matrix Lie Group and its Lie Algebra. Matrix Lie Group and Algebra provides rigious math models for rigid body transformation and rotation matrix. Understanding Matrix Lie Group and Lie Algebra is not only important for knowing rigid body trasnformation further, but also the keys to the optimization problems over rigid body transformation, such as reprojection error optimization in visual SLAM. Before diving into the technical details, it is recommended to watch this <a href="https://www.youtube.com/watch?v=ZRca3Ggpy_g&list=LL&index=3&ab_channel=Mathemaniac">tutorial video about Lie Group and Lie Algebra</a>. <br>
 
     <h2>Group Perspective</h2>
     Formally, rotation matrix $\mathbf{R}$ is a $n$ dimensional <b>Special Orthogonal (SO) Group</b>, which is, 
@@ -262,11 +263,11 @@
     Next we talk about the manifold perspective of the rotation matrix and rigid body transformation. Since they are manifolds, they can be locally approximated by a tangent space, which is a Euclidean space. The following figure illustrates manifold and its local approximation of tangent space.
     <div class="figure">
         <img src="./figs/manifold.png" alt="Illustration of manifold and its local approximation of tangent space" style="width: 60%;">
-        <div class="figure-caption">Illustration of manifold and its local approximation of tangent space.</div>
+        <div class="figure-caption">Illustration of manifold and its local approximation of tangent space. (From GTSAM blogs)</div>
     </div>
 
 
-    <h3>Lie Algebra, Retraction and Exponential Map</h3>
+    <h3>Lie Algebra, Retract and Exponential Map</h3>
     To better understand Lie Group/Manifold and Lie Algebra, we need to bring a little taste of differential geometry here. <br>
 
     <h4>Lie Algebra of $\mathrm{SO}(3)$</h4>
@@ -349,7 +350,7 @@
         \mathfrak{so}(3) = \left\{ \boldsymbol{\omega} \in \mathbb{R}^3 \quad \text{or} \quad \boldsymbol{\omega}^\wedge \in \mathbb{R}^{3 \times 3} \right\}
     \end{equation}
 
-    We will also give the defination of Lie bracket, which is a the operation of Lie Algebra measuring the difference between multiplying them in one order versus the other. The Lie bracket of $\mathfrak{so}(3)$ is defined as:
+    We will also give the defination of Lie bracket, which is used to preserve the closure of Lie Algebra. Hence, after the Lie bracket operation, the result is still a Lie Algebra. The Lie bracket of $\mathfrak{so}(3)$ is defined as:
     $$
     \begin{align}
     [\boldsymbol{\omega}_1, \boldsymbol{\omega}_2] 
@@ -578,6 +579,12 @@
         \mathrm{Log}: \mathrm{SO}(3) \rightarrow \mathbb{R}^3, \quad \mathbf{R} \mapsto \ln(\mathbf{R})^\vee
     \end{align}
     $$
+    
+    The following figure is an excellent illustration of the Exponential and Logarithm maps. Note this figure also illutrates the defination of Lie Algebra as the tangent space of the Lie Manifold is at the identity element of the Lie Manifold. <br>
+    <div class="figure">
+        <img src="./figs/local_retract.png" alt="" style="width: 60%;">
+        <div class="figure-caption">Illustration of the Exponential and Logarithm maps. (From GTSAM blogs)</div>
+    </div>
 
     <h3> BCH Formula </h3>
     Before we move to the Jacobian of Lie Group/Algebra, let's talk about the BCH formula. BCH formula is a key tool to get the results of two elements in Lie Group, which is then used to derive the Jacobian of Lie Algebra. <br>
@@ -597,7 +604,7 @@
         + \cdots
     \end{equation}
 
-    Where operation $[, ]$ denotes the Lie bracet, which is used to preserve the closure of Lie Algebra. We will get there right away.<br>
+    Where operation $[, ]$ denotes the Lie bracet.<br>
 
 
     <h2> Jacobian of Lie Group and Algebra</h2>
@@ -706,31 +713,91 @@
 
     Here matrix $\mathbf{P}$ is the projection matrix of the camera, which contains the pose of the camera. <br>
 
-    And first we talk about the rotation only case, which will then requires the derivative of the objective function with respect to the rotation part of the camera pose. The relevant part of the this derivative is:
-
+    And first we talk about the rotation only case, which will then requires the derivative of the objective function with respect to the rotation part of the camera pose. 
+    
+    Let's just first recall the defination of derivative of a function $f(x)$ with respect to $x$ is:
+    \begin{equation}
+        \frac{d f(x)}{d x} = \lim_{\delta x \to 0} \frac{f(x + \delta x) - f(x)}{\delta x}
+    \end{equation}
+    
+    Note here $x + \delta x$ is a addition operation in vector space, which is not defined in Lie Manifold $\mathrm{SO}(3)$ and $\mathrm{SE}(3)$. We then have 2 ways to define the derivative of an objective function over Lie Manifold, and let's start with rotation only case.
+    <ul>
+        <li> Derivative model in $\mathfrak{so}(3)$: With infinitesimal perturbation $\delta \boldsymbol{\phi} \in \mathfrak{so}(3)$, define the derivative of the objective function with respect to $\boldsymbol{\phi}$.
+        <li> Pertabution model in $\mathrm{SO}(3)$: With infinitesimal perturbation in $\delta \mathbf{R} \in \mathrm{SO}(3)$, define the corresponding perturbation in $\boldsymbol{\varphi} \in \mathfrak{so}(3)$, hence $\delta \mathbf{R} = \exp(\boldsymbol{\varphi}^\wedge)$. Then we define the derivative of the objective function with respect to $\boldsymbol{\varphi}$.
+    </ul>
+    
+    <h4> Derivative model in $\mathfrak{so}(3)$</h4>
     \begin{equation}
     \begin{aligned}
-        \frac{\partial \left( \exp({\boldsymbol{\phi}}^\wedge) \mathbf{X} \right)}{\partial \boldsymbol{\phi}}
+    \frac{\partial \left( \mathbf{R} \mathbf{X} \right)}{\partial \boldsymbol{\phi}} &=
+        \frac{\partial \left( \exp({\boldsymbol{\phi}}^\wedge) \mathbf{X} \right)}{\partial \boldsymbol{\phi}} \\
         &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{\exp\left((\boldsymbol{\phi} + \delta \boldsymbol{\phi})^\wedge\right) \mathbf{X} - \exp(\boldsymbol{\phi}^\wedge) \mathbf{X}}{\delta \boldsymbol{\phi}} \\
-        &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{\exp\left((\mathbf{J}_l \delta \boldsymbol{\phi})^\wedge\right) \exp(\boldsymbol{\phi}^\wedge) \mathbf{X} - \exp(\boldsymbol{\phi}^\wedge) \mathbf{X}}{\delta \boldsymbol{\phi}} \\
-        &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{\left( \mathbf{I} + (\mathbf{J}_l \delta \boldsymbol{\phi})^\wedge \right) \exp(\boldsymbol{\phi}^\wedge) \mathbf{X} - \exp(\boldsymbol{\phi}^\wedge) \mathbf{X}}{\delta \boldsymbol{\phi}} \\
+        &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{\exp\left((\mathbf{J}_l \delta \boldsymbol{\phi})^\wedge\right) \exp(\boldsymbol{\phi}^\wedge) \mathbf{X} - \exp(\boldsymbol{\phi}^\wedge) \mathbf{X}}{\delta \boldsymbol{\phi}} \quad (\text{BCH formula}) \\
+        &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{\left( \mathbf{I} + (\mathbf{J}_l \delta \boldsymbol{\phi})^\wedge \right) \exp(\boldsymbol{\phi}^\wedge) \mathbf{X} - \exp(\boldsymbol{\phi}^\wedge) \mathbf{X}}{\delta \boldsymbol{\phi}} \quad (\text{Exponential Map linearization}) \\
         &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{(\mathbf{J}_l \delta \boldsymbol{\phi})^\wedge \exp(\boldsymbol{\phi}^\wedge) \mathbf{X}}{\delta \boldsymbol{\phi}} \\
-        &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{ -\left( \exp({\boldsymbol{\phi}}^\wedge) \mathbf{X} \right)^\wedge \mathbf{J}_l \delta \boldsymbol{\phi} }{\delta \boldsymbol{\phi}} \\
-        &= -\left( \mathbf{R} \mathbf{X} \right)^\wedge \mathbf{J}_l.
+        &= \lim_{\delta \boldsymbol{\phi} \to 0} \frac{ -\left( \exp({\boldsymbol{\phi}}^\wedge) \mathbf{X} \right)^\wedge \mathbf{J}_l \delta \boldsymbol{\phi} }{\delta \boldsymbol{\phi}} \quad (\mathbf{a}^\wedge \mathbf{b} = -\mathbf{b}^\wedge \mathbf{a})\\
+        &= -\left( \mathbf{R} \mathbf{X} \right)^\wedge \mathbf{J}_l
     \end{aligned}
     \end{equation}
 
-    <!-- Another way:
+   <h4> Pertabution model in $\mathrm{SO}(3)$</h4>
+   Here the defination of derivative is less straightforward, as addition is not defined in $\mathrm{SO}(3)$. The small pertabulation in $\mathrm{SO}(3)$ applied on $\mathbf{R}$ is defined as $(\delta \mathbf{R}) \mathbf{R}$, here we use the left multiplication rule, and the derivative becomes:
+   
     \begin{equation}
     \begin{aligned}
-        \frac{\partial (\mathbf{R} \mathbf{p})}{\partial \boldsymbol{\varphi}} 
-        &= \lim_{\boldsymbol{\varphi} \to 0} \frac{\exp(\hat{\boldsymbol{\varphi}}) \exp(\hat{\boldsymbol{\phi}}) \mathbf{p} - \exp(\hat{\boldsymbol{\phi}}) \mathbf{p}}{\boldsymbol{\varphi}} \\
-        &= \lim_{\boldsymbol{\varphi} \to 0} \frac{(\mathbf{I} + \hat{\boldsymbol{\varphi}}) \exp(\hat{\boldsymbol{\phi}}) \mathbf{p} - \exp(\hat{\boldsymbol{\phi}}) \mathbf{p}}{\boldsymbol{\varphi}} \\
-        &= \lim_{\boldsymbol{\varphi} \to 0} \frac{\hat{\boldsymbol{\varphi}} \mathbf{R} \mathbf{p}}{\boldsymbol{\varphi}} 
-        = \lim_{\boldsymbol{\varphi} \to 0} \frac{ -(\mathbf{R} \mathbf{p})^\wedge \boldsymbol{\varphi} }{ \boldsymbol{\varphi} } 
-        = -(\mathbf{R} \mathbf{p})^\wedge.
+        \frac{\partial (\mathbf{R} \mathbf{X})}{\partial \boldsymbol{\varphi}}
+        &= \lim_{\boldsymbol{\varphi} \to 0} \frac{(\delta \mathbf{R}) \mathbf{R} \mathbf{X} -  \mathbf{R} \mathbf{X}}{\boldsymbol{\varphi}} \\
+        &= \lim_{\boldsymbol{\varphi} \to 0} \frac{\exp(\boldsymbol{\varphi}^\wedge) \exp(\boldsymbol{\phi}^\wedge) \mathbf{X} - \exp(\boldsymbol{\phi}^\wedge) \mathbf{X}}{\boldsymbol{\varphi}} \\
+        &= \lim_{\boldsymbol{\varphi} \to 0} \frac{(\mathbf{I} + \boldsymbol{\varphi}^\wedge) \exp(\boldsymbol{\phi}^\wedge) \mathbf{X} - \exp(\boldsymbol{\phi}^\wedge) \mathbf{X}}{\boldsymbol{\varphi}} \\
+        &= \lim_{\boldsymbol{\varphi} \to 0} \frac{\boldsymbol{\varphi}^\wedge \mathbf{R} \mathbf{X}}{\boldsymbol{\varphi}} 
+        = \lim_{\boldsymbol{\varphi} \to 0} \frac{ -(\mathbf{R} \mathbf{X})^\wedge \boldsymbol{\varphi} }{ \boldsymbol{\varphi} } 
+        = -(\mathbf{R} \mathbf{X})^\wedge
     \end{aligned}
-    \end{equation} -->
+    \end{equation}
+
+    Comparing with the previous equation, we drop a $\mathbf{J}_l$ term here, making the computation simpler. And in fact the two perturbation terms satisfy $\boldsymbol{\varphi} = \mathbf{J}_l \delta \boldsymbol{\phi}$. <br>
+
+   <h4> Pertabution model in $\mathrm{SE}(3)$</h4>
+   Now naturally we can extend the pertabution model to $\mathrm{SE}(3)$, with the small pertabulation in $\mathrm{SE}(3)$ applied on $\mathbf{T}$ is defined as $(\delta \mathbf{T}) \mathbf{T}$, and use the corresponding Lie Algebra $\boldsymbol{\epsilon} \in \mathfrak{se}(3)$, the derivative becomes:
+   \begin{equation}
+   \begin{aligned}
+        \frac{\partial(\mathbf{T}\mathbf{X})}{\partial \boldsymbol{\epsilon}}
+        &= \lim_{\boldsymbol{\epsilon} \to 0} \frac{\exp(\boldsymbol{\epsilon}^\wedge) \exp(\boldsymbol{\xi}^\wedge) \mathbf{X} - \exp(\boldsymbol{\xi}^\wedge) \mathbf{X}}{\boldsymbol{\epsilon}} \\[5pt]
+        &= \lim_{\boldsymbol{\epsilon} \to 0} \frac{(\mathbf{I} + \boldsymbol{\epsilon}^\wedge) \exp(\boldsymbol{\xi}^\wedge) \mathbf{X} - \exp(\boldsymbol{\xi}^\wedge) \mathbf{X}}{\boldsymbol{\epsilon}} \\
+        &= \lim_{\boldsymbol{\epsilon} \to 0} \frac{ \boldsymbol{\epsilon}^\wedge \exp(\boldsymbol{\xi}^\wedge) \mathbf{X}}{ \boldsymbol{\epsilon}} \\
+        &= \lim_{\boldsymbol{\epsilon} \to 0} \frac{ \boldsymbol{\epsilon}^\wedge \mathbf{T} \mathbf{X}}{ \boldsymbol{\epsilon}} \\
+        &= \lim_{\boldsymbol{\epsilon} \to 0} \frac{ \boldsymbol{\epsilon}^\wedge \begin{bmatrix} \mathbf{R} & \mathbf{t} \\ \mathbf{0}^{\top} & 1 \end{bmatrix} \mathbf{X}} { \boldsymbol{\epsilon}} \\
+        &= \lim_{ \boldsymbol{\epsilon} \to 0}
+        \frac{
+        \begin{bmatrix}
+        \boldsymbol{\varphi} & \delta \boldsymbol{\rho} \\
+        \mathbf{0}^T & 0
+        \end{bmatrix}
+        \begin{bmatrix}
+        \mathbf{R} \mathbf{X} + \mathbf{t} \\
+        1
+        \end{bmatrix}}
+        {\boldsymbol{\epsilon}}
+        \quad (\text{Homogeneous coordinate}) \\
+        &= \lim_{ \boldsymbol{\epsilon} \to 0}
+        \frac{
+        \begin{bmatrix}
+        \boldsymbol{\varphi} (\mathbf{R} \mathbf{X} + \mathbf{t}) + \delta \boldsymbol{\rho} \\
+        \mathbf{0}^{\top}
+        \end{bmatrix}
+        }
+        { [\boldsymbol{\varphi}, \delta \boldsymbol{\rho}]^{\top} } \\
+        &=
+        \begin{bmatrix}
+        \mathbf{I} & -(\mathbf{R} \mathbf{X} + \mathbf{t})^\wedge \\
+        \mathbf{0}^{\top} & \mathbf{0}^{\top}
+        \end{bmatrix}  \in \mathbb{R}^{4 \times 6} \\
+        &= (\mathbf{T} \mathbf{X})^\odot
+    \end{aligned}
+    \end{equation}
+
+    Here we deine $\odot$ as an operator that maps a 4-d homogeneous point to a $4 \times 6 $ matrix. <br>
+
 
 
     <h2>References</h2>
