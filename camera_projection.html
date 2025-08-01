@@ -413,11 +413,11 @@
     The IR projector is used to project the IR pattern, e.g. dots, into un-textured regions, to improve the robustness of stereo matching for depth computation.
     <div class="figure">
         <img src="figs/rs_IR.png" alt="Realsense IR Projector Patterns" style="width: 70%;">
-        <div class="figure-caption">Realsense IR Projector Dots Patterns</div>
+        <div class="figure-caption">Realsense IR Projector Dots Patterns (Source: <a href="https://mag.switch-science.com/2018/04/19/intel-realsense-depth-camera-d435-handson/"> from here</a>)</div>
     </div>
 
     <h3>Time-of-Flight (ToF) Cameras</h3>
-    Another type of common camera is the Time-of-Flight (ToF) camera. It provides more accurate depth measurements, but its measurement range is often shorter, usually up to 5 meters. As the name suggests, it measures the time it takes for light to travel to objects and back, and then calculate the distance to the objects.
+    Another type of common camera is the Time-of-Flight (ToF) camera. It provides more accurate depth measurements, but its measurement range is often shorter, usually up to 5 meters. As the name suggests, ToF sensor emits IR light and measures the time it takes for light to travel to objects and back, and then calculate the distance to the objects.
     
     <div class="figure">
         <img src="figs/tof_principle.png" alt="ToF Camera Principle" style="width: 70%;">
@@ -425,6 +425,8 @@
     </div>
     
     Azure Kinect was a popular ToF camera (but unfortunatly it is now discontinued. However, we still have many good choices for ToF sensors, such as <a href="https://shop.luxonis.com/products/oak-d-sr-poe?srsltid=AfmBOoqWU0xM3ISEal6QwmXU3Xn9iqoW7QDNvXg5GdaravQoiHXsxHC9">OAK-D TOF</a>, <a href="https://www.orbbec.com/products/tof-camera/femto-bolt/" >Orbbec Femto Bolt</a>, etc. We can check out these videos to see the depth quality of Orbbec Femto Bolt. <a  href="https://www.youtube.com/watch?v=YSlnLfsPIuM&ab_channel=JetsonHacks">here</a> and <a href="https://www.youtube.com/watch?v=uM8bDCaruOs&ab_channel=Orbbec">here</a>.
+
+    In fact, LiDAR works in a similar principle as ToF cameras. The difference is that LiDAR uses a laser pulse with higher frequency, and it can reach to much longer distances.
 
     <h2>References</h2>
     <ol>
