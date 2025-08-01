@@ -30,7 +30,7 @@
     </script>
     <meta charset="UTF-8">
     <base target="_blank">
-    <title>Matrix Lie Group</title>
+    <title>Cameras, Sensors and Projection Model</title>
     <style>
         body {
             font-family: 'Lato', 'Google Sans', sans-serif;
@@ -162,32 +162,21 @@
 <body>
     <h1>Cameras, Sensors and Projection Model</h1>
     
-    <h2>Common Sensors used in Visual SLAM</h2>
-    Caemras have been evoving really fast. The following are some of the common sensors used in Visual SLAM:
-    <ul>
-        <li>Realsense D455, D435i</li>
-        <li>Oak-D, Oak-D Pro</li>
-        <li>Zed 2</li>
-    </ul>
-
-
     <h2>Pinhole Projection Model</h2>
-    Camera projection model
-    \begin{equation}
-    \mathbf{x} = \mathbf{P} \mathbf{X}_W
-    \end{equation}
+    Pinhole camera projection model is the most common camera projection model. It is a simple model that projects a 3D point to a 2D image plane.
+    <div class="figure">
+        <img src="figs/pinhole_model.png" alt="Pinhole Camera Projection Model Illustraion", style="width: 90%;">
+        <div class="figure-caption">Pinhole Camera Projection Model</div>
+    </div>
 
-    \begin{equation}
-    \tilde{\mathbf{X}}_C = \mathbf{T} \tilde{\mathbf{X}}_W
-    =
-    \begin{bmatrix} 
-    \mathbf{R} & \mathbf{t}\\
-    \mathbf{0}^{\top} & 1 \\
-    \end{bmatrix}  
-    \tilde{\mathbf{X}}_W
-    \end{equation}
+    We first dicuss the projection of 3D points in camera coordinate system to 2D image points. Slice one place of the above 3D space,
 
-    camera intrinsic derivation:
+    <div class="figure">
+        <img src="figs/pinhole_model_one_plane.png" alt="Pinhole Camera Projection Model in 2D", style="width: 70%;">
+        <div class="figure-caption">Pinhole Camera Projection Model in 2D</div>
+    </div>
+
+    With simple geometry rules, we find the camera intrinsic matrix as,
     \begin{equation}
     \frac{Z}{f_y} = \frac{Y}{y}
     \quad
@@ -308,12 +297,12 @@
     \end{bmatrix} 
     \end{equation}
 
-    However, this is not the 3D points in world frame, we need to inverse the camera extrinsic matrix to get the 3D points in world frame, combine the camera extrinsic together,
+    <!-- However, this is not the 3D points in world frame, we need to inverse the camera extrinsic matrix to get the 3D points in world frame, combine the camera extrinsic together,
     \begin{equation}
     \tilde {\mathbf{x}}_i = \mathbf{K} \tilde {\mathbf{X}}_C 
     = \mathbf{K} \mathbf{T}_{CW}
     \tilde {\mathbf{X}}_W
-    \end{equation}
+    \end{equation} -->
 
     and matrix $\mathbf{T}_{CW}$ is the camera extrinsic matrix, which happens to be the inverse of $\mathbf{T}_{WC}$, the camera pose in world frame.
 
@@ -351,11 +340,96 @@
     \end{bmatrix}
     \end{equation}
 
-    How to get the depth information? Not possible from a single view, we will need at least two views, or specific depth sensors.
+    How to get the depth information? We will need at least two views, or specific depth sensors.
+
+    The full projection model also includes the rigid body transformation of camera frame seen from the world frame, denoted as $\mathbf{T}_{WC}$. But in camera projection model, we trasnform a 3D point in world frame to a 3D point in camera frame, making the convention using $\mathbf{T}_{CW}$ to denote the camera extrinsic matrix.
+
+    \begin{equation}
+    \tilde{\mathbf{X}}_C = \mathbf{T}_{CW} \tilde{\mathbf{X}}_W
+    =
+    \tilde{\mathbf{X}}_W
+    \end{equation}
+
+    here $\tilde{\mathbf{X}}_W$ is the 3D point in world frame in homogeneous coordinates.
+
+    Combine the camera intrinsic matrix and the camera extrinsic matrix, we get the full projection model,
+    \begin{equation}
+    \mathbf{x} = \mathbf{P} \mathbf{X}_W = \mathbf{K} \mathbf{T}_{CW} \tilde{\mathbf{X}}_W
+    \end{equation}
 
     <h2>Stereo Camera and Stereo Matching</h2>
+    As we mentioned before, camera projection will lose the depth information. One way to recover the depth information is to use stereo cameras via a process called stereo matching. We will now derive the math model of stereo matching.
+    The key concepts of stereo matching are denoted as the following figure.
+    <div class="figure">
+        <img src="figs/stereo_model.png" alt="Stereo Matching Math Model">
+        <div class="figure-caption">Stereo Matching Math Model</div>
+    </div>
 
-    <h2>Depth Camera</h2>
+    Based on simple geometry, we can find the the relationship of depth $Z$, disparity $d$, baseline $B$ and focal length $f$ as,
+    \begin{equation}
+    \begin{aligned}
+    \frac{d}{f} = \frac{B}{Z} \\
+    Z = \frac{B f}{d}
+    \end{aligned}
+    \end{equation}
 
+    where $d$ is the disparity, $B$ is the baseline, $f_x$ is the focal length, $Z$ is the depth. The disparity is the difference in the x-coordinates of the same point projected onto the two cameras.
+
+
+    <h2>Common Sensors used in Visual SLAM</h2>
+
+    <h3>Stereo Cameras</h3>
+    Many exsiting visual-(inertial) SLAM systems, such as  <a href="https://github.com/UZ-SLAMLab/ORB_SLAM3">ORB-SLAM3</a> and <a href="https://github.com/ethz-mrl/okvis2/">okvis2</a> can be used in the following commercial sensors. They are stereo cameras usually with a buit-in IMU inside them. Here is a table summarizing the sensors and their features.
+    
+    <table border="1" style="width: 100%; text-align: center;">
+        <tr>
+            <th style="padding: 15px;">Sensor</th>
+            <th style="padding: 15px;">Depth Method</th>
+            <th style="padding: 15px;">Built-in SLAM</th>
+        </tr>
+        <tr>
+            <td style="padding: 15px;"><a href="https://www.intelrealsense.com/depth-camera-d455/">RealSense D455</a></td>
+            <td style="padding: 15px;">Active IR Stereo</td>
+            <td style="padding: 15px;">No</td>
+        </tr>
+        <tr>
+            <td style="padding: 15px;"><a href="https://docs.luxonis.com/hardware/products/OAK-D%20Pro/">OAK-D Pro</a></td>
+            <td style="padding: 15px;">Active IR Stereo</td>
+            <td style="padding: 15px;">No</td>
+        </tr>
+        <tr>
+            <td style="padding: 15px;"><a href="https://www.stereolabs.com/zed-2/">ZED 2(i)</a></td>
+            <td style="padding: 15px;">Learning-based Stereo</td>
+            <td style="padding: 15px;">Yes</td>
+        </tr>
+    </table>
+
+    If we observe, for example, a Realsense D455 camera, we will see the two grayscale cameras on the most left and right side of the camera. The middle one is the IR projector and a RGB camera. 
+    <div class="figure">
+        <img src="figs/d455.jpg" alt="Realsense D455">
+        <div class="figure-caption">Realsense D455</div>
+    </div>
+    
+    The IR projector is used to project the IR pattern, e.g. dots, into un-textured regions, to improve the robustness of stereo matching for depth computation.
+    <div class="figure">
+        <img src="figs/rs_IR.png" alt="Realsense IR Projector Patterns" style="width: 70%;">
+        <div class="figure-caption">Realsense IR Projector Dots Patterns</div>
+    </div>
+
+    <h3>Time-of-Flight (ToF) Cameras</h3>
+    Another type of common camera is the Time-of-Flight (ToF) camera. It provides more accurate depth measurements, but its measurement range is often shorter, usually up to 5 meters. As the name suggests, it measures the time it takes for light to travel to objects and back, and then calculate the distance to the objects.
+    
+    <div class="figure">
+        <img src="figs/tof_principle.png" alt="ToF Camera Principle" style="width: 70%;">
+        <div class="figure-caption">ToF Camera Principle (Image from <a href="https://en.wikipedia.org/wiki/Time-of-flight_camera">Wikipedia page</a>)</div>
+    </div>
+    
+    Azure Kinect was a popular ToF camera (but unfortunatly it is now discontinued. However, we still have many good choices for ToF sensors, such as <a href="https://shop.luxonis.com/products/oak-d-sr-poe?srsltid=AfmBOoqWU0xM3ISEal6QwmXU3Xn9iqoW7QDNvXg5GdaravQoiHXsxHC9">OAK-D TOF</a>, <a href="https://www.orbbec.com/products/tof-camera/femto-bolt/" >Orbbec Femto Bolt</a>, etc. We can check out these videos to see the depth quality of Orbbec Femto Bolt. <a  href="https://www.youtube.com/watch?v=YSlnLfsPIuM&ab_channel=JetsonHacks">here</a> and <a href="https://www.youtube.com/watch?v=uM8bDCaruOs&ab_channel=Orbbec">here</a>.
+
+    <h2>References</h2>
+    <ol>
+        <li>Visual SLAM: From Theory to Practice, by Xiang Gao, Tao Zhang, Qinrui Yan and Yi Liu</li>
+        <li>Multiview Geometry in Computer Vision, by Richard Hartley and Andrew Zisserman</li>
+    </ol>
 
 </body>
