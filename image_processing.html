@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,400,900">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:300,400,700">
+    <link rel="stylesheet" href="../../latex.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          processEscapes: true
+        },
+        TeX: {
+          equationNumbers: {
+            autoNumber: "AMS",
+            useLabelIds: true
+          }
+        },
+        "HTML-CSS": {
+          availableFonts: ["STIX"],
+          linebreaks: { automatic: true },
+          imageFont: null
+        }
+      });
+    </script>
+    <script type="text/javascript" async
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+    </script>
+    <meta charset="UTF-8">
+    <base target="_blank">
+    <title> Filtering-based Methods for Visual SLAM</title>
+    <style>
+        body {
+            font-family: 'Lato', 'Google Sans', sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px 40px;
+            font-size: 20px;
+            counter-reset: figure-counter;
+            text-align: justify;
+        }
+        h1 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            text-align: center;
+            margin-bottom: 2em;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.8em;
+            margin-top: 1.5em;
+        }
+        h3 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.4em;
+            margin-top: 1.2em;
+        }
+        .figure {
+            text-align: center;
+            margin: 30px 0;
+            width: 100%;
+            counter-increment: figure-counter;
+        }
+        .figure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .figure-caption {
+            font-style: italic;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .figure-caption::before {
+            content: "Figure " counter(figure-counter) ": ";
+            font-weight: bold;
+            font-style: normal;
+        }
+        .subfigure-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 20px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .subfigure {
+            flex: 0 1 600px;
+            text-align: center;
+        }
+        .subfigure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            min-width: 400px;
+        }
+        .subfigure .figure-caption {
+            font-style: italic;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .subfigure .figure-caption::before {
+            content: none;
+        }
+        .MathJax {
+            font-size: 1.1em !important;
+        }
+        .MathJax_Display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin: 1em 0;
+        }
+        .equation-container {
+            display: table;
+            width: 100%;
+            margin: 1.5em 0;
+        }
+        .equation-content {
+            display: table-cell;
+            width: 100%;
+        }
+        .figure-label::before {
+            content: "Figure " counter(figure-counter) ":";
+            font-weight: bold;
+            margin-right: 0.5em;
+        }
+        /* MathJax display styles */
+        .MJXc-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .MJXc-display::-webkit-scrollbar {
+            width: 5px;
+            height: 2px;
+        }
+        .MJXc-display::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .MJXc-display::-webkit-scrollbar-thumb {
+            background: #ddd;
+            visibility:hidden;
+        }
+        .MJXc-display:hover::-webkit-scrollbar-thumb {
+            visibility:visible;
+        }
+    </style>
+
+</head>
+<body>
+    <h1>Basic Image Processing, Features Detection and Matching</h1>
+    
+<h2>Point Feature Extraction and Description</h2>
+SIFT, FAST, BRIEF, ORB, etc.
+
+<h3>Feature Matching</h3> 
+Brute-force matching, FLANN, RANSAC, etc.
+
+<h3>Optical Flow</h3>
+Lucas-Kanade
+
+
+
+
+

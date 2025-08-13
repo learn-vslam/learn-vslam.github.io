@@ -176,15 +176,21 @@
     $$
 
     where $\mathbf{R}$ is a rotation matrix, $\mathbf{t}$ is a translation vector. The transformation describe a relative motion, so we have to specify the motion is in relative to which frame.
-    For example, we define the pose of the camera frame $C$ expressed in the world frame $W$ as $\mathbf{T}_{WC}$, which means frame C seen from frame W. 
-    Assume a robot moves with a onboard camera. Robot Body frame is $B$, the pose of the camera frame $C$ expressed in the robot body frame $B$ is $\mathbf{T}_{BC}$. 
+    For example, the transformation $\mathbf{T}_{WC}$ has the following meanings at the same time:
+    <ol>
+        <li>motion of the camera frame $\mathcal{F}_C$ expressed in the world frame $\mathcal{F}_W$</li>
+        <li>a transformation take 3D landmark point $\mathbf{X}$ expressed in $\mathcal{F}_C$, then express it in frame $\mathcal{F}_W$.</li> 
+        <li>a transformation from world frame $\mathcal{F}_W$ to body frame $\mathcal{F}_C$.</li>
+    </ol>
+
+    Assume a robot moves with a onboard camera. Robot Body frame is $\mathcal{F}_B$, the pose of the camera frame $\mathcal{F}_C$ expressed in the robot body frame $\mathcal{F}_B$ is $\mathbf{T}_{BC}$. 
     The robot pose can be expressed as,
 
     $$
         \mathbf{T}_{WB} = \mathbf{T}_{WC} \mathbf{T}_{BC}^{-1}
     $$
 
-    The pose indicating transformation from body frame $B$ seen from world frame $W$, which indicating the motion of the robot body, is a transform of a 3D landmark point $\mathbf{X}$ from the body frame $B$ to the world frame $W$.
+    As we mentioned before, this pose indicates a transformation from body frame $\mathcal{F}_B$ seen from world frame $\mathcal{F}_W$, which indicating the motion of the robot body, is also a transformation of a 3D landmark point $\mathbf{X}$ from the body frame $\mathcal{F}_B$ to the world frame $\mathcal{F}_W$.
 
     $$
     \begin{align}
@@ -192,7 +198,7 @@
     \end{align}
     $$
 
-    And the transformation from world frame $W$ to body frame $B$ is the inverse of the above transformation,
+    And the transformation of a 3D landmark point $\mathbf{X}_W$ from world frame $\mathcal{F}_W$ to body frame $\mathcal{F}_B$ is the inverse of the above transformation,
 
     $$
     \begin{align}
