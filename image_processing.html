@@ -2179,9 +2179,88 @@ Lucas-Kanade
   <li><strong>Robotics:</strong> Visual navigation and obstacle avoidance</li>
 </ul>
 
+<h2>Optical Flow with Lucas-Kanade Method</h2>
+
+The Lucas-Kanade method is a popular sparse optical flow estimation algorithm that is invented by Bruce D. Lucas and Prof. Takeo Kanade in 1981 from CMU. It assumes small motion and brightness constancy. It uses a local patch around the pixel of interest and solves a system of linear equations to estimate the flow vector.
+
+The brightness constancy assumption states that the intensity of a pixel does not change between two frames. Mathematically, it can be expressed as:
+    
+\begin{equation}
+I(x, y, t) = I(x + \delta x,\, y + \delta y,\, t + \delta t) = I(x + dx, y + dy, t + dt)
+\end{equation}
+
+where $dx$, $dy$ and $dt$ are the small changes in the x, y and t directions, respectively. This basically tells us that the intensity of a pixel does not change between two frames given a period of time $t$.
+
+Then we can do a first-order Taylor expansion given the small motion assumption, which gives,
+\begin{equation}
+I(x + dx,\, y + dy,\, t + dt) 
+\approx I(x, y, t) + \frac{\partial I}{\partial x} \,dx + \frac{\partial I}{\partial y} \,dy + \frac{\partial I}{\partial t} \,dt
+\end{equation}
+
+
+Then we have,
+\begin{equation}
+\frac{\partial I}{\partial x} \,dx + \frac{\partial I}{\partial y} \,dy + \frac{\partial I}{\partial t} \,dt = 0
+\end{equation}
+
+write in full derivative form,
+\begin{equation}
+\frac{\partial I}{\partial x} \frac{d x}{d t} + \frac{\partial I}{\partial y} \frac{d y}{d t} + \frac{\partial I}{\partial t} = 0
+\end{equation}
+
+
+here
+\begin{equation}
+\begin{aligned}
+I_x = \frac{\partial I}{\partial x} \text{ is the image gradient in x direction} \\
+I_y = \frac{\partial I}{\partial y} \text{ is the image gradient in y direction} \\
+I_t = \frac{\partial I}{\partial t} \text{ is the intensity change over time} \\
+u = \frac{d x}{d t} \text{ is the flow in x direction} \\
+v = \frac{d y}{d t} \text{ is the flow in y direction}
+\end{aligned}
+\end{equation}
+
+then we have
+\begin{equation}
+\begin{bmatrix} I_x & I_y \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix}
+= -I_t
+\end{equation}
+
+and now the goal is clear, we want to solve for $u$ and $v$, the optical flow, given the image gradient $I_x$ and $I_y$ and the intensity change over time $I_t$.
+
+In practice, We don’t use just one pixel, intead we use a image patch and assume all the pixels in this patch have the same motion. e.g. for a patch with size $[h, w]$ with $n = w \times h$ pixels, we have,
+
+\begin{equation}
+\begin{bmatrix}
+I_x^{(1)} & I_y^{(1)} \\
+I_x^{(2)} & I_y^{(2)} \\
+\vdots & \vdots \\
+I_x^{(n)} & I_y^{(n)}
+\end{bmatrix}
+\begin{bmatrix} u \\ v \end{bmatrix}
+=
+\begin{bmatrix}
+- I_t^{(1)} \\ - I_t^{(2)} \\ \vdots \\ - I_t^{(n)}
+\end{bmatrix}
+\end{equation}
+
+in matrix form,
+\begin{equation}
+A \begin{bmatrix} u \\ v \end{bmatrix} = -b
+\end{equation}
+
+The above linear system is usually over-determined, and we solve it with a least squares method, or equivalently, the Moore-Penrose pseudoinverse,
+\begin{equation}
+\begin{bmatrix} u \\ v \end{bmatrix} = -(A^\top A)^{-1} A^\top b
+\end{equation}
+
+
 <h2>References</h2>
 <ol>
   <li>Lowe, D. G. (2004). <em>Distinctive Image Features from Scale-Invariant Keypoints</em>. International Journal of Computer Vision, 60(2), 91-110. <a href="https://www.cs.ubc.ca/~lowe/papers/ijcv04.pdf" target="_blank">https://www.cs.ubc.ca/~lowe/papers/ijcv04.pdf</a></li>
+  <li> Lucas-Kanade 20 Years On: A Unifying Framework, in International Journal of Computer Vision 56(3), 221–255, 2004, by Simon Baker and Iain Matthews </li>
+  <li>Visual SLAM: From Theory to Practice, by Xiang Gao, Tao Zhang, Qinrui Yan and Yi Liu</li>
+
 </ol>
 
 
