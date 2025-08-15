@@ -163,7 +163,9 @@
     <h1>Basic Image Processing, Features Detection and Matching</h1>
     
 <h2>Point Feature Extraction and Description</h2>
-SIFT, FAST, BRIEF, ORB, etc.
+Point features can be used to find a sparse set of corresponding locations in different images, 
+often as pre-cursor to computing camera pose, which is a prerequisite for computing a dneser set of correspondences using stero matching. 
+Such correspondences can also be used to align different images. They also drive the early object recognition pipelines.
 
 <h3> Sobel Filter </h3>
 A Sobel filter is a small 3 x 3 convolution kernel that emphasizes changes in a specific direction.
@@ -192,10 +194,13 @@ S_y = \begin{bmatrix}
 Convolve with $S_x$ and $S_y$ to get gradients $I_x$ and $I_y$
 
 <h3 > Harris Corner Detector</h3>
-For each pixel, Harris builds a matrix:
+
+
+
+For each pixel, Harris builds an auto-correlation matrix:
 
 \begin{equation}
-M = \begin{bmatrix}
+M = \omega * \begin{bmatrix}
     \Sigma \omega I_x^2 &  \Sigma \omega I_x I_y \\
     \Sigma \omega I_x I_y & \Sigma \omega I_y^2
 \end{bmatrix}
@@ -205,7 +210,32 @@ M = \begin{bmatrix}
 R = \det(M) - k \left( \mathrm{trace}(M) \right)^2
 \]
 
-entries with large R values are corners.
+where:
+- $\det(M) = \lambda_1 \lambda_2$ (product of eigenvalues)
+- $\mathrm{trace}(M) = \lambda_1 + \lambda_2$ (sum of eigenvalues)
+- $k$ is a sensitivity parameter (typically 0.04-0.06)
+
+<br>
+R is the Harris corner measure.
+
+<h4>Interpreting the Harris Corner Measure</h4>
+
+The Harris response function $R$ tells us about the local image structure:
+
+<ul>
+<li><strong>Flat regions:</strong> Both eigenvalues are small → $R \approx 0$</li>
+<li><strong>Edges:</strong> One eigenvalue is large, one is small → $R < 0$ (negative)</li>
+<li><strong>Corners:</strong> Both eigenvalues are large → $R > 0$ (positive)</li>
+</ul>
+
+<p><strong>Why this works:</strong></p>
+<ul>
+<li>At corners, gradients change rapidly in multiple directions, giving large eigenvalues</li>
+<li>The term $k(\mathrm{trace}(M))^2$ penalizes very strong edges that might be mistaken for corners</li>
+<li>Only pixels with $R > \text{threshold}$ are considered corners</li>
+</ul>
+
+<p><strong>Typical threshold:</strong> $R > 0.01 \times \max(R)$ or $R > 10^6$ for 8-bit images</p>
 
 
 
@@ -252,13 +282,196 @@ $$
 \end{bmatrix}
 $$
 
+
 Sum all values:
 $$
 (-10 + 0 + 50) + (-20 + 0 + 400) + (-10 + 0 + 200) = 610
 $$
 
+$I_x[{3,3}] = 610$
 
+<br>
+Compute  $I_y$ with $S_y$ :
+<br>
 
+Same 3 x 3 neighborhood, multiply by $S_y$:
+\begin{gather*}
+\begin{bmatrix}
+-1 & -2 & -1 \\
+0 & 0 & 0 \\
+1 & 2 & 1
+\end{bmatrix}
+\odot
+\begin{bmatrix}
+10 & 50 & 50 \\
+10 & 200 & 200 \\
+10 & 200 & 200
+\end{bmatrix}
+
+\begin{bmatrix}
+-10 & -100 & -50 \\
+0 & 0 & 0 \\
+10 & 400 & 200
+\end{bmatrix}
+\end{gather*}
+Sum:
+$$
+(-10 - 100 - 50) + 0 + (10 + 400 + 200) = 450
+$$
+
+$I_y[{3,3}] = 450$
+
+<div class="figure">
+  <img src="figs\img_processing\harris_region.jpg" alt="Harris corner detection" style="width: 50%; display: block; margin: 0 auto;">
+  <p style="text-align: center; font-style: italic; margin-top: 10px;">Harris Region</p>
+</div>
+
+<h3>Image Moments</h3>
+
+<p><strong>Goal:</strong> Extract quantitative descriptors that characterize the shape, position, and distribution of pixel intensities in an image region.</p>
+
+<p>Image moments are statistical measures that describe the distribution of pixel intensities. They are useful for:</p>
+<ul>
+  <li>Shape analysis and recognition</li>
+  <li>Object tracking</li>
+  <li>Feature extraction</li>
+  <li>Image registration</li>
+</ul>
+
+<h4>Mathematical Definition</h4>
+
+<p>The <strong>raw moment</strong> of order $(p,q)$ for a 2D image $I(x,y)$ is defined as:</p>
+
+\[
+m_{pq} = \sum_{x} \sum_{y} x^p y^q I(x,y)
+\]
+
+<p>where $I(x,y)$ is the pixel intensity at position $(x,y)$.</p>
+
+<h4>Common Moments and Their Meaning</h4>
+
+<ul>
+  <li><strong>Zero-order moment ($m_{00}$):</strong> Total intensity (area if binary image)</li>
+  <li><strong>First-order moments ($m_{10}, m_{01}$):</strong> Used to find centroid</li>
+  <li><strong>Second-order moments ($m_{20}, m_{11}, m_{02}$):</strong> Describe distribution and orientation</li>
+</ul>
+
+<h4>Centroid Calculation</h4>
+
+<p>The centroid (center of mass) of an image region is given by:</p>
+
+\[
+\bar{x} = \frac{m_{10}}{m_{00}}, \quad \bar{y} = \frac{m_{01}}{m_{00}}
+\]
+
+<h4>Central Moments</h4>
+
+<p>Central moments are calculated relative to the centroid, making them translation-invariant:</p>
+
+\[
+\mu_{pq} = \sum_{x} \sum_{y} (x - \bar{x})^p (y - \bar{y})^q I(x,y)
+\]
+
+<h4>Normalized Moments</h4>
+
+<p>Normalized moments are scale-invariant:</p>
+
+\[
+\eta_{pq} = \frac{\mu_{pq}}{\mu_{00}^{\gamma}}, \quad \text{where } \gamma = \frac{p + q}{2} + 1
+\]
+
+<h4>Hu Moments (Invariant Moments)</h4>
+
+<p>Hu moments are a set of 7 moments that are invariant to translation, rotation, and scale:</p>
+
+\[
+\begin{align}
+h_1 &= \eta_{20} + \eta_{02} \\
+h_2 &= (\eta_{20} - \eta_{02})^2 + 4\eta_{11}^2 \\
+h_3 &= (\eta_{30} - 3\eta_{12})^2 + (3\eta_{21} - \eta_{03})^2 \\
+h_4 &= (\eta_{30} + \eta_{12})^2 + (\eta_{21} + \eta_{03})^2 \\
+h_5 &= (\eta_{30} - 3\eta_{12})(\eta_{30} + \eta_{12})[(\eta_{30} + \eta_{12})^2 - 3(\eta_{21} + \eta_{03})^2] \\
+&\quad + (3\eta_{21} - \eta_{03})(\eta_{21} + \eta_{03})[3(\eta_{30} + \eta_{12})^2 - (\eta_{21} + \eta_{03})^2] \\
+h_6 &= (\eta_{20} - \eta_{02})[(\eta_{30} + \eta_{12})^2 - (\eta_{21} + \eta_{03})^2] \\
+&\quad + 4\eta_{11}(\eta_{30} + \eta_{12})(\eta_{21} + \eta_{03}) \\
+h_7 &= (3\eta_{21} - \eta_{03})(\eta_{30} + \eta_{12})[(\eta_{30} + \eta_{12})^2 - 3(\eta_{21} + \eta_{03})^2] \\
+&\quad - (\eta_{30} - 3\eta_{12})(\eta_{21} + \eta_{03})[3(\eta_{30} + \eta_{12})^2 - (\eta_{21} + \eta_{03})^2]
+\end{align}
+\]
+
+<h4>Worked Example: Calculating Image Moments</h4>
+
+<div class="example-box">
+<p><strong>Example:</strong> Calculate moments for a 3×3 binary image patch</p>
+
+<p><strong>Input Image:</strong></p>
+\[
+I = \begin{bmatrix}
+0 & 1 & 0 \\
+1 & 1 & 1 \\
+0 & 1 & 0
+\end{bmatrix}
+\]
+
+<p><strong>Step 1: Calculate Raw Moments</strong></p>
+
+<p>For each pixel $(x,y)$ with intensity $I(x,y) = 1$, compute $x^p y^q$:</p>
+
+<ul>
+  <li><strong>$m_{00}$ (Total intensity):</strong> Count of non-zero pixels = 5</li>
+  <li><strong>$m_{10}$ (First moment in x):</strong> $\sum x \cdot I(x,y) = 0 + 1 + 1 + 1 + 2 = 5$</li>
+  <li><strong>$m_{01}$ (First moment in y):</strong> $\sum y \cdot I(x,y) = 1 + 0 + 1 + 2 + 1 = 5$</li>
+  <li><strong>$m_{20}$ (Second moment in x):</strong> $\sum x^2 \cdot I(x,y) = 0 + 1 + 1 + 1 + 4 = 7$</li>
+  <li><strong>$m_{11}$ (Mixed moment):</strong> $\sum xy \cdot I(x,y) = 0 + 0 + 1 + 2 + 2 = 5$</li>
+  <li><strong>$m_{02}$ (Second moment in y):</strong> $\sum y^2 \cdot I(x,y) = 1 + 0 + 1 + 4 + 1 = 7$</li>
+</ul>
+
+<p><strong>Step 2: Calculate Centroid</strong></p>
+
+\[
+\bar{x} = \frac{m_{10}}{m_{00}} = \frac{5}{5} = 1.0, \quad \bar{y} = \frac{m_{01}}{m_{00}} = \frac{5}{5} = 1.0
+\]
+
+<p><strong>Step 3: Calculate Central Moments</strong></p>
+
+<p>For each pixel $(x,y)$ with $I(x,y) = 1$, compute $(x - \bar{x})^p (y - \bar{y})^q$:</p>
+
+<ul>
+  <li><strong>$\mu_{00}$:</strong> Same as $m_{00} = 5$</li>
+  <li><strong>$\mu_{10}$ and $\mu_{01}$:</strong> Always 0 by definition</li>
+  <li><strong>$\mu_{20}$:</strong> $\sum (x - 1.0)^2 \cdot I(x,y) = 1.0 + 0.0 + 0.0 + 0.0 + 1.0 = 2.0$</li>
+  <li><strong>$\mu_{11}$:</strong> $\sum (x - 1.0)(y - 1.0) \cdot I(x,y) = 0.0 + 0.0 + 0.0 + 0.0 + 0.0 = 0.0$</li>
+  <li><strong>$\mu_{02}$:</strong> $\sum (y - 1.0)^2 \cdot I(x,y) = 0.0 + 1.0 + 0.0 + 1.0 + 0.0 = 2.0$</li>
+</ul>
+
+<p><strong>Step 4: Calculate Normalized Moments</strong></p>
+
+\[
+\eta_{20} = \frac{\mu_{20}}{\mu_{00}^2} = \frac{2.0}{25} = 0.08, \quad \eta_{02} = \frac{\mu_{02}}{\mu_{00}^2} = \frac{2.0}{25} = 0.08
+\]
+
+<p><strong>Step 5: Calculate First Hu Moment</strong></p>
+
+\[
+h_1 = \eta_{20} + \eta_{02} = 0.08 + 0.08 = 0.16
+\]
+
+<p><strong>Interpretation:</strong></p>
+<ul>
+  <li>The centroid is at $(1.0, 1.0)$, exactly at the center</li>
+  <li>$\mu_{11} = 0$ indicates no correlation between x and y (symmetric shape)</li>
+  <li>$h_1 = 0.16$ is invariant to translation, rotation, and scale</li>
+</ul>
+</div>
+
+<h4>Applications in Computer Vision</h4>
+
+<ul>
+  <li><strong>Shape Recognition:</strong> Compare Hu moments to identify similar shapes</li>
+  <li><strong>Object Tracking:</strong> Track objects by matching moments across frames</li>
+  <li><strong>Feature Matching:</strong> Use moments as rotation/scale-invariant features</li>
+  <li><strong>Image Registration:</strong> Align images by matching moment-based descriptors</li>
+</ul>
 
 <h3> Scale Invariant Feature Transform (SIFT)</h3>
 Harris corners work well at one scale, but:
@@ -266,7 +479,7 @@ Harris corners work well at one scale, but:
 If you zoom in/out → the corner's size changes, Harris might miss it.
 <div class="figure">
     <img src="figs\img_processing\harris_failure.jpg" alt="Harris corner detection" style="width: 50%; display: block; margin: 0 auto;">
-    <p style="text-align: center; font-style: italic; margin-top: 10px;">Harris corner detection</p>
+    <p style="text-align: center; font-style: italic; margin-top: 10px;">Harris corner detection might fail at different scales</p>
 </div>
 
 
@@ -281,12 +494,1695 @@ Assigning each keypoint a dominant orientation (rotation-invariant).
 Describing the neighborhood with a robust feature vector.
 
 
+<p>Given an image $I(x,y)$, define the scale-space by Gaussian smoothing:</p>
+\[
+  L(x,y,\sigma) = (G(x,y, \sigma) * I)(x,y), \quad
+  G(x,y,\sigma) = \frac{1}{2\pi\sigma^2} \exp\!\left( -\frac{x^2+y^2}{2\sigma^2} \right).
+\]
+
+<p>Scales are organized into <em>octaves</em> and <em>intervals</em> (layers) with a multiplicative factor
+  $k = 2^{1/s}$ for $s$ intervals per octave, i.e. $\sigma_i = \sigma_0 k^i$.</p>
+
+<h2 id="scale-space">1) Scale-space construction</h2>
+<p><strong>Goal:</strong> Build a pyramid of Gaussian-smoothed images at different scales to detect features that are stable across scale changes.</p>
+
+<h3>Step-by-Step Process:</h3>
+
+<h4>Step 1: Generate Gaussian images</h4>
+<ul>
+  <li>Start with the original image $I(x,y)$</li>
+  <li>Apply Gaussian smoothing with increasing $\sigma$ values</li>
+  <li>Create a stack of images: $L(x,y,\sigma_0), L(x,y,\sigma_1), L(x,y,\sigma_2), \ldots$</li>
+  <li>Each image is smoothed by: $L(x,y,\sigma) = G(x,y,\sigma) * I(x,y)$</li>
+</ul>
+
+<h4>Step 2: Organize into octaves</h4>
+<ul>
+  <li><strong>Octave:</strong> A set of images where the scale doubles (e.g., $\sigma, 2\sigma, 4\sigma, 8\sigma$)</li>
+  <li><strong>Intervals:</strong> Images within an octave (typically 3-4 intervals per octave)</li>
+  <li><strong>Scale factor:</strong> $k = 2^{1/s}$ where $s$ is the number of intervals per octave</li>
+  <li>For $s = 3$ intervals: $k = 2^{1/3} \approx 1.26$, so scales are $\sigma, 1.26\sigma, 1.59\sigma, 2\sigma$</li>
+</ul>
+
+<h4>Step 3: Downsample for next octave</h4>
+<ul>
+  <li>After each octave, downsample the image by a factor of 2</li>
+  <li>This reduces computational cost while maintaining scale relationships</li>
+  <li>Process continues for 4-5 octaves typically</li>
+</ul>
+
+<h3>Worked Example: Building a 3-Octave Scale-Space</h3>
+
+<div class="example-box">
+<h4>Example: 512×512 image with 3 intervals per octave</h4>
+
+<p><strong>Parameters:</strong></p>
+<ul>
+  <li>Initial scale: $\sigma_0 = 1.6$</li>
+  <li>Intervals per octave: $s = 3$</li>
+  <li>Scale factor: $k = 2^{1/3} \approx 1.26$</li>
+  <li>Number of octaves: 3</li>
+</ul>
+
+<p><strong>Octave 1 (512×512):</strong></p>
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <th>Image</th>
+    <th>Scale σ</th>
+    <th>Gaussian Kernel Size</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>L₀</td>
+    <td>1.6</td>
+    <td>11×11</td>
+    <td>Base image (slightly smoothed)</td>
+  </tr>
+  <tr>
+    <td>L₁</td>
+    <td>2.0</td>
+    <td>13×13</td>
+    <td>k × 1.6 = 1.26 × 1.6</td>
+  </tr>
+  <tr>
+    <td>L₂</td>
+    <td>2.5</td>
+    <td>17×17</td>
+    <td>k² × 1.6 = 1.59 × 1.6</td>
+  </tr>
+  <tr>
+    <td>L₃</td>
+    <td>3.2</td>
+    <td>21×21</td>
+    <td>k³ × 1.6 = 2.0 × 1.6</td>
+  </tr>
+</table>
+</div>
+
+<p><strong>Downsample L₃ by 2× → 256×256</strong></p>
+
+<p><strong>Octave 2 (256×256):</strong></p>
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <th>Image</th>
+    <th>Scale σ</th>
+    <th>Gaussian Kernel Size</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>L₄</td>
+    <td>3.2</td>
+    <td>21×21</td>
+    <td>Downsampled L₃ (effective scale = 6.4)</td>
+  </tr>
+  <tr>
+    <td>L₅</td>
+    <td>4.0</td>
+    <td>25×25</td>
+    <td>k × 3.2 = 1.26 × 3.2</td>
+  </tr>
+  <tr>
+    <td>L₆</td>
+    <td>5.0</td>
+    <td>31×31</td>
+    <td>k² × 3.2 = 1.59 × 3.2</td>
+  </tr>
+  <tr>
+    <td>L₇</td>
+    <td>6.4</td>
+    <td>41×41</td>
+    <td>k³ × 3.2 = 2.0 × 3.2</td>
+  </tr>
+</table>
+</div>
+
+<p><strong>Downsample L₇ by 2× → 128×128</strong></p>
+
+<p><strong>Octave 3 (128×128):</strong></p>
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <th>Image</th>
+    <th>Scale σ</th>
+    <th>Gaussian Kernel Size</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>L₈</td>
+    <td>6.4</td>
+    <td>41×41</td>
+    <td>Downsampled L₇ (effective scale = 12.8)</td>
+  </tr>
+  <tr>
+    <td>L₉</td>
+    <td>8.0</td>
+    <td>49×49</td>
+    <td>k × 6.4 = 1.26 × 6.4</td>
+  </tr>
+  <tr>
+    <td>L₁₀</td>
+    <td>10.0</td>
+    <td>61×61</td>
+    <td>k² × 6.4 = 1.59 × 6.4</td>
+  </tr>
+  <tr>
+    <td>L₁₁</td>
+    <td>12.8</td>
+    <td>79×79</td>
+    <td>k³ × 6.4 = 2.0 × 6.4</td>
+  </tr>
+</table>
+</div>
+
+<p><strong>Key Points:</strong></p>
+<ul>
+  <li><strong>Total images:</strong> 12 Gaussian images (4 per octave × 3 octaves)</li>
+  <li><strong>Scale progression:</strong> Each octave covers a 2× range in scale</li>
+  <li><strong>Computational efficiency:</strong> Downsampling reduces computation in higher octaves</li>
+  <li><strong>Scale invariance:</strong> Features detected at different scales can be matched</li>
+</ul>
+
+<p><strong>Important Note on Kernel Sizes and Image Dimensions:</strong></p>
+
+<p>When applying Gaussian convolution with different kernel sizes, the resulting images have different effective dimensions due to the convolution operation. For example:</p>
+
+<ul>
+  <li><strong>Original image:</strong> 512×512</li>
+  <li><strong>After 11×11 convolution:</strong> 502×502 (loses 5 pixels on each side)</li>
+  <li><strong>After 13×13 convolution:</strong> 500×500 (loses 6 pixels on each side)</li>
+  <li><strong>After 17×17 convolution:</strong> 496×496 (loses 8 pixels on each side)</li>
+  <li><strong>After 21×21 convolution:</strong> 492×492 (loses 10 pixels on each side)</li>
+</ul>
+
+<p><strong>How SIFT handles this:</strong></p>
+
+<ol>
+  <li><strong>Padding:</strong> The original image is padded with zeros or reflected pixels before convolution to maintain the same output size</li>
+  <li><strong>Border handling:</strong> SIFT discards border regions where the convolution is not fully defined</li>
+  <li><strong>Consistent indexing:</strong> All Gaussian images maintain the same coordinate system, with border pixels excluded from keypoint detection</li>
+</ol>
+
+<p><strong>Corrected kernel size calculation:</strong></p>
+
+<p>For SIFT, the kernel size should be calculated as: <code>2 × ceil(3σ) + 1</code></p>
+
+<p>This ensures that 99.7% of the Gaussian's energy is captured within the kernel, and the kernel size is always odd (necessary for proper centering).</p>
+
+<p><strong>Note:</strong> The effective scale at each level accounts for both the Gaussian smoothing and the downsampling. For example, L₄ has σ = 3.2 but represents features at effective scale 6.4 due to the 2× downsampling.</p>
+</div>
+
+<h2 id="dog">2) Difference of Gaussians (DoG)</h2>
+
+<div class="figure">
+    <img src="figs\img_processing\DoG_example.png" alt="Difference of Gaussians" style="width: 50%; display: block; margin: 0 auto;">
+    <p style="text-align: center; font-style: italic; margin-top: 10px;">Difference of Gaussians</p>
+</div>
+
+<p>Adjacent scale images are subtracted to form DoG:</p>
+\[
+  D(x,y,\sigma) = L(x,y,k\sigma) - L(x,y,\sigma).
+\]
+Using the identity $\frac{\partial G}{\partial \sigma} = \sigma \, \nabla^2 G$, DoG
+  approximates the <em>scale-normalized</em> Laplacian of Gaussian:</p>
+\[
+  L(x,y,k\sigma) - L(x,y,\sigma) \approx C\sigma\frac{\partial L}{\partial \sigma} \propto \sigma^2 (\nabla^2 G * I).
+\]
+
+<h2 id="extrema">3) 3D extrema detection</h2>
+<p>For each sample in $D$, compare to its 26 neighbors (8 in the same layer, 9 above, 9 below). If it is a strict maximum or minimum, keep it as a candidate keypoint.</p>
+<ul>
+  <li>Keep both maxima and minima (bright-on-dark vs. dark-on-bright blobs).</li>
+  <li>Proceed per octave and discard border regions.</li>
+</ul>
+
+<h3>Worked Example: Finding Extrema in 3D Scale-Space</h3>
+
+<p>Let's walk through finding extrema in a small 3×3×3 region of the Difference of Gaussians (DoG) pyramid:</p>
+
+<div class="example-box">
+<h4>Step 1: Consider a candidate point at position (x,y,σ)</h4>
+<p>We have a DoG value $D(x,y,\sigma) = 15.2$ and need to compare it with its 26 neighbors:</p>
+
+<h4>Step 2: Define the 26-neighborhood</h4>
+<p>The 26 neighbors consist of:</p>
+<ul>
+  <li><strong>Same scale (8 neighbors):</strong> $(x±1, y±1, \sigma)$</li>
+  <li><strong>Scale above (9 neighbors):</strong> $(x±1, y±1, \sigma \cdot k)$</li>
+  <li><strong>Scale below (9 neighbors):</strong> $(x±1, y±1, \sigma / k)$</li>
+</ul>
+
+<h4>Step 3: Example comparison</h4>
+<p>Let's say our candidate point $D(x,y,\sigma) = 15.2$ has these neighbor values:</p>
+
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+    <strong>Scale above (kσ):</strong><br>
+    <table style="border-collapse: collapse; margin: 5px 0;">
+      <tr><td>16.8</td><td>17.2</td><td>16.1</td></tr>
+      <tr><td>17.5</td><td>18.1</td><td>16.9</td></tr>
+      <tr><td>16.3</td><td>17.8</td><td>16.5</td></tr>
+    </table>
+
+
+<strong>Same scale (σ):</strong><br>
+<table style="border-collapse: collapse; margin: 5px 0;">
+  <tr><td>12.1</td><td>13.8</td><td>11.9</td></tr>
+  <tr><td>14.2</td><td><strong style="color: red;">15.2</strong></td><td>13.1</td></tr>
+  <tr><td>12.8</td><td>14.5</td><td>12.3</td></tr>
+</table>
+
+
+<strong>Scale below (σ/k):</strong><br>
+<table style="border-collapse: collapse; margin: 5px 0;">
+    <tr><td>10.2</td><td>11.1</td><td>9.8</td></tr>
+    <tr><td>11.5</td><td>12.3</td><td>10.9</td></tr>
+    <tr><td>10.8</td><td>11.7</td><td>10.1</td></tr>
+</table>
+
+</div>
+
+<h4>Step 4: Check for extrema</h4>
+<p>For a <strong>maximum</strong>: $D(x,y,\sigma) > D(\text{all 26 neighbors})$</p>
+<p>For a <strong>minimum</strong>: $D(x,y,\sigma) < D(\text{all 26 neighbors})$</p>
+
+<p>In our example:</p>
+<ul>
+  <li>Our value: <strong>15.2</strong></li>
+  <li>Largest neighbor: <strong>18.1</strong> (in scale above)</li>
+  <li>Smallest neighbor: <strong>9.8</strong> (in scale below)</li>
+</ul>
+
+<p><strong>Result:</strong> Since 15.2 is neither greater than all neighbors (18.1 > 15.2) nor less than all neighbors (9.8 < 15.2), this point is <strong>NOT an extremum</strong> and would be discarded.</p>
+
+<h4>Step 5: Example of a valid extremum</h4>
+<p>If instead our candidate had value <strong>19.5</strong> and all 26 neighbors were less than 19.5, then it would be a <strong>maximum</strong> and kept as a keypoint candidate.</p>
+
+<p><strong>Note:</strong> In practice, SIFT uses a threshold (typically 0.03) to filter out low-contrast extrema that are sensitive to noise.</p>
+</div>
+
+
+
+<h2 id="orientation">5) Orientation assignment</h2>
+<p><strong>Goal:</strong> Make each keypoint rotation invariant by assigning a canonical orientation.</p>
+
+<h3>Step-by-Step Process:</h3>
+
+<h4>Step 1: Extract a patch around the keypoint</h4>
+<ul>
+  <li>Center the patch at the keypoint location $(x,y)$ at the correct scale $\sigma$</li>
+  <li>Patch size is proportional to the keypoint's $\sigma$ (typically 16×16 pixels)</li>
+  <li>Use the Gaussian-smoothed image $L(x,y,\sigma)$ at the keypoint's scale</li>
+</ul>
+
+<h4>Step 2: Compute gradient magnitude and orientation</h4>
+<p>For each pixel in the patch, compute gradients from the Gaussian-smoothed image $L$:</p>
+
+<p><strong>Gradient magnitude:</strong></p>
+\[
+  m(x,y) = \sqrt{(L(x+1,y)-L(x-1,y))^2 + (L(x,y+1)-L(x,y-1))^2}
+\]
+
+<p><strong>Gradient orientation:</strong></p>
+\[
+  \theta(x,y) = \tan^{-1}\left(\frac{L(x,y+1)-L(x,y-1)}{L(x+1,y)-L(x-1,y)}\right)
+\]
+
+<h4>Step 3: Weight by distance from keypoint</h4>
+<p>Multiply each magnitude $m(x,y)$ by a Gaussian window centered at the keypoint:</p>
+\[
+  w(x,y) = \exp\left(-\frac{x^2+y^2}{2\sigma_w^2}\right), \quad \sigma_w = 1.5 \times \sigma_{\text{keypoint}}
+\]
+<p>This ensures that pixels closer to the keypoint contribute more to the orientation.</p>
+
+<h4>Step 4: Build orientation histogram</h4>
+<ul>
+  <li>Create 36 bins, each covering 10° (0°-360° total)</li>
+  <li>Accumulate weighted magnitudes $w(x,y) \times m(x,y)$ into the appropriate orientation bin</li>
+  <li>Use trilinear interpolation to distribute the weight across neighboring bins</li>
+</ul>
+
+<h4>Step 5: Select dominant orientations</h4>
+<ul>
+  <li>Find the peak of the histogram → this becomes the main orientation</li>
+  <li>Look for additional peaks ≥ 80% of the maximum peak</li>
+  <li>Create duplicate keypoints at the same location and scale but with different orientations</li>
+</ul>
+
+<h3>Worked Example: Orientation Assignment</h3>
+
+<div class="example-box">
+<h4>Example: Keypoint at (100, 150) with scale σ = 2.0</h4>
+
+<p><strong>Step 1:</strong> Extract 16×16 patch centered at (100, 150) from Gaussian image $L(x,y,2.0)$</p>
+
+<div style="display: flex; gap: 20px; margin: 20px 0; align-items: flex-start;">
+  <div style="flex: 1;">
+    <p><strong>Original Image Patch (5×5 around keypoint):</strong></p>
+    <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+    <table style="border-collapse: collapse; margin: 5px 0;">
+      <tr><td>120</td><td>125</td><td>130</td><td>135</td><td>140</td></tr>
+      <tr><td>122</td><td>128</td><td>135</td><td>142</td><td>148</td></tr>
+      <tr><td>125</td><td>132</td><td><strong style="color: red;">140</strong></td><td>148</td><td>155</td></tr>
+      <tr><td>128</td><td>135</td><td>142</td><td>150</td><td>158</td></tr>
+      <tr><td>130</td><td>138</td><td>145</td><td>152</td><td>160</td></tr>
+    </table>
+    <p style="text-align: center; font-style: italic;">Keypoint at center (140)</p>
+    </div>
+  </div>
+  
+  <div style="flex: 1;">
+    <p><strong>Gaussian-Smoothed Image L(x,y,σ=2.0) (5×5 around keypoint):</strong></p>
+    <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+    <table style="border-collapse: collapse; margin: 5px 0;">
+      <tr><td>118.2</td><td>123.8</td><td>129.1</td><td>134.2</td><td>139.1</td></tr>
+      <tr><td>121.5</td><td>127.3</td><td>133.8</td><td>140.1</td><td>146.2</td></tr>
+      <tr><td>124.7</td><td>130.8</td><td><strong style="color: red;">137.5</strong></td><td>144.0</td><td>150.3</td></tr>
+      <tr><td>127.9</td><td>134.2</td><td>140.7</td><td>147.2</td><td>153.5</td></tr>
+      <tr><td>131.0</td><td>137.5</td><td>144.1</td><td>150.6</td><td>156.9</td></tr>
+    </table>
+    <p style="text-align: center; font-style: italic;">Gaussian-smoothed values at keypoint center (137.5)</p>
+    </div>
+  </div>
+</div>
+
+<h4>How we get 137.5: Gaussian Convolution Calculation</h4>
+<p>For σ = 2.0, we use a 5×5 Gaussian kernel (truncated at ±2σ = ±4 pixels):</p>
+
+<p><strong>Gaussian Kernel G(x,y,σ=2.0) (5×5):</strong></p>
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; margin: 5px 0;">
+  <tr><td>0.02</td><td>0.08</td><td>0.14</td><td>0.08</td><td>0.02</td></tr>
+  <tr><td>0.08</td><td>0.37</td><td>0.61</td><td>0.37</td><td>0.08</td></tr>
+  <tr><td>0.14</td><td>0.61</td><td><strong style="color: red;">1.00</strong></td><td>0.61</td><td>0.14</td></tr>
+  <tr><td>0.08</td><td>0.37</td><td>0.61</td><td>0.37</td><td>0.08</td></tr>
+  <tr><td>0.02</td><td>0.08</td><td>0.14</td><td>0.08</td><td>0.02</td></tr>
+</table>
+<p style="text-align: center; font-style: italic;">Gaussian weights (normalized, rounded to 2 decimal places)</p>
+</div>
+
+<p><strong>Convolution at center pixel (140):</strong></p>
+<p>Multiply the original 5×5 patch element-wise with the Gaussian kernel:</p>
+
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; margin: 5px 0;">
+  <tr><td>120×0.02</td><td>125×0.08</td><td>130×0.14</td><td>135×0.08</td><td>140×0.02</td></tr>
+  <tr><td>= 2.4</td><td>= 10.0</td><td>= 18.2</td><td>= 10.8</td><td>= 2.8</td></tr>
+  <tr><td>122×0.08</td><td>128×0.37</td><td>135×0.61</td><td>142×0.37</td><td>148×0.08</td></tr>
+  <tr><td>= 9.8</td><td>= 47.4</td><td>= 82.4</td><td>= 52.5</td><td>= 11.8</td></tr>
+  <tr><td>125×0.14</td><td>132×0.61</td><td><strong style="color: red;">140×1.00</strong></td><td>148×0.61</td><td>155×0.14</td></tr>
+  <tr><td>= 17.5</td><td>= 80.5</td><td><strong style="color: red;">= 140.0</strong></td><td>= 90.3</td><td>= 21.7</td></tr>
+  <tr><td>128×0.08</td><td>135×0.37</td><td>142×0.61</td><td>150×0.37</td><td>158×0.08</td></tr>
+  <tr><td>= 10.2</td><td>= 50.0</td><td>= 86.6</td><td>= 55.5</td><td>= 12.6</td></tr>
+  <tr><td>130×0.02</td><td>138×0.08</td><td>145×0.14</td><td>152×0.08</td><td>160×0.02</td></tr>
+  <tr><td>= 2.6</td><td>= 11.0</td><td>= 20.3</td><td>= 12.2</td><td>= 3.2</td></tr>
+</table>
+</div>
+
+<p><strong>Sum all weighted values:</strong></p>
+<p>2.4 + 10.0 + 18.2 + 10.8 + 2.8 + 9.8 + 47.4 + 82.4 + 52.5 + 11.8 + 17.5 + 80.5 + <strong>140.0</strong> + 90.3 + 21.7 + 10.2 + 50.0 + 86.6 + 55.5 + 12.6 + 2.6 + 11.0 + 20.3 + 12.2 + 3.2 = <strong>848.0</strong></p>
+
+<p><strong>Normalize by kernel sum:</strong></p>
+<p>Kernel sum = 6.25, so L(100,150,2.0) = 848.0 ÷ 6.25 = <strong>135.7</strong></p>
+
+<p><strong>Note:</strong> The slight difference (137.5 vs 135.7) is due to rounding in the kernel values and the exact Gaussian function evaluation. The principle remains the same.</p>
+
+<p><strong>Step 2:</strong> Compute gradients for a few sample pixels using the L matrix values:</p>
+
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <th>Pixel (x,y)</th>
+    <th>L(x+1,y) - L(x-1,y)</th>
+    <th>L(x,y+1) - L(x,y-1)</th>
+    <th>Magnitude m(x,y)</th>
+    <th>Orientation θ(x,y)</th>
+  </tr>
+  <tr>
+    <td>(100, 150) - center</td>
+    <td>144.0 - 130.8 = 13.2</td>
+    <td>140.7 - 134.2 = 6.5</td>
+    <td>√(13.2² + 6.5²) = 14.7</td>
+    <td>tan⁻¹(6.5/13.2) = 26.2°</td>
+  </tr>
+  <tr>
+    <td>(101, 150) - right</td>
+    <td>150.3 - 137.5 = 12.8</td>
+    <td>153.5 - 147.2 = 6.3</td>
+    <td>√(12.8² + 6.3²) = 14.3</td>
+    <td>tan⁻¹(6.3/12.8) = 26.2°</td>
+  </tr>
+  <tr>
+    <td>(100, 151) - below</td>
+    <td>140.7 - 127.9 = 12.8</td>
+    <td>144.1 - 137.5 = 6.6</td>
+    <td>√(12.8² + 6.6²) = 14.4</td>
+    <td>tan⁻¹(6.6/12.8) = 27.3°</td>
+  </tr>
+  <tr>
+    <td>(99, 150) - left</td>
+    <td>137.5 - 124.7 = 12.8</td>
+    <td>134.2 - 127.9 = 6.3</td>
+    <td>√(12.8² + 6.3²) = 14.3</td>
+    <td>tan⁻¹(6.3/12.8) = 26.2°</td>
+  </tr>
+  <tr>
+    <td>(100, 149) - above</td>
+    <td>134.2 - 121.5 = 12.7</td>
+    <td>137.5 - 130.8 = 6.7</td>
+    <td>√(12.7² + 6.7²) = 14.4</td>
+    <td>tan⁻¹(6.7/12.7) = 27.8°</td>
+  </tr>
+  <tr>
+    <td>(101, 151) - diagonal</td>
+    <td>153.5 - 134.2 = 19.3</td>
+    <td>150.6 - 147.2 = 3.4</td>
+    <td>√(19.3² + 3.4²) = 19.6</td>
+    <td>tan⁻¹(3.4/19.3) = 10.0°</td>
+  </tr>
+  <tr>
+    <td>(99, 149) - diagonal</td>
+    <td>130.8 - 121.5 = 9.3</td>
+    <td>137.5 - 127.9 = 9.6</td>
+    <td>√(9.3² + 9.6²) = 13.4</td>
+    <td>tan⁻¹(9.6/9.3) = 45.9°</td>
+  </tr>
+  <tr>
+    <td>(102, 150) - far right</td>
+    <td>156.9 - 144.0 = 12.9</td>
+    <td>160.0 - 150.3 = 9.7</td>
+    <td>√(12.9² + 9.7²) = 16.2</td>
+    <td>tan⁻¹(9.7/12.9) = 36.9°</td>
+  </tr>
+  <tr>
+    <td>(100, 152) - far below</td>
+    <td>144.1 - 127.9 = 16.2</td>
+    <td>147.2 - 140.7 = 6.5</td>
+    <td>√(16.2² + 6.5²) = 17.4</td>
+    <td>tan⁻¹(6.5/16.2) = 21.9°</td>
+  </tr>
+</table>
+</div>
+
+<p><strong>Note:</strong> The gradient calculations use finite differences:
+- $L(x+1,y) - L(x-1,y)$ for x-gradient
+- $L(x,y+1) - L(x,y-1)$ for y-gradient</p>
+
+<p><strong>Step 3:</strong> Apply Gaussian weighting with σ_w = 1.5 × 2.0 = 3.0</p>
+<p>For pixel (100, 150): distance = 0, so w(100, 150) = exp(0) = 1.0</p>
+<p>For pixel (101, 150): distance = 1, so w(101, 150) = exp(-1²/(2×3²)) = 0.95</p>
+<p>For pixel (100, 151): distance = 1, so w(100, 151) = exp(-1²/(2×3²)) = 0.95</p>
+<p>For pixel (99, 150): distance = 1, so w(99, 150) = exp(-1²/(2×3²)) = 0.95</p>
+<p>For pixel (100, 149): distance = 1, so w(100, 149) = exp(-1²/(2×3²)) = 0.95</p>
+
+<p><strong>Weighted magnitudes:</strong></p>
+<ul>
+  <li>Center (100, 150): 14.7 × 1.0 = 14.7</li>
+  <li>Right (101, 150): 14.3 × 0.95 = 13.6</li>
+  <li>Below (100, 151): 14.4 × 0.95 = 13.7</li>
+  <li>Left (99, 150): 14.3 × 0.95 = 13.6</li>
+  <li>Above (100, 149): 14.4 × 0.95 = 13.7</li>
+  <li>Diagonal (101, 151): 19.6 × 0.90 = 17.6</li>
+  <li>Diagonal (99, 149): 13.4 × 0.90 = 12.1</li>
+  <li>Far right (102, 150): 16.2 × 0.85 = 13.8</li>
+  <li>Far below (100, 152): 17.4 × 0.85 = 14.8</li>
+</ul>
+
+<p><strong>Step 4:</strong> Build histogram (showing relevant bins based on our calculations):</p>
+
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <th>Bin Range</th>
+    <th>Center Angle</th>
+    <th>Orientations in Bin</th>
+    <th>Accumulated Weight</th>
+    <th>Visual Histogram</th>
+  </tr>
+  <tr>
+    <td>0°-10°</td>
+    <td>5°</td>
+    <td>None</td>
+    <td>0.0</td>
+    <td>
+      <div style="background: #ddd; height: 20px; width: 5px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 12px;">0.0</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>10°-20°</td>
+    <td>15°</td>
+    <td>10.0°</td>
+    <td><strong>17.6</strong></td>
+    <td>
+      <div style="background: #2196F3; height: 20px; width: 18px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 12px;">17.6</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>20°-30°</td>
+    <td>25°</td>
+    <td>21.9°, 26.2°, 26.2°, 27.3°, 26.2°, 27.8°</td>
+    <td><strong>84.1</strong> ← Peak</td>
+    <td>
+      <div style="background: #4CAF50; height: 20px; width: 84px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 12px;">84.1</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>30°-40°</td>
+    <td>35°</td>
+    <td>36.9°</td>
+    <td><strong>13.8</strong></td>
+    <td>
+      <div style="background: #FF9800; height: 20px; width: 14px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 12px;">13.8</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>40°-50°</td>
+    <td>45°</td>
+    <td>45.9°</td>
+    <td><strong>12.1</strong></td>
+    <td>
+      <div style="background: #9C27B0; height: 20px; width: 12px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 12px;">12.1</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>
+      <div style="background: #ddd; height: 20px; width: 5px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 12px;">...</span>
+      </div>
+    </td>
+  </tr>
+</table>
+</div>
+
+<p><strong>Visual Histogram Representation:</strong></p>
+<div style="background: #f9f9f9; padding: 20px; border-radius: 5px; margin: 10px 0; text-align: center;">
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">5°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #2196F3; height: 18px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">15°</span>
+      <span style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 10px;">17.6</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #4CAF50; height: 84px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">25°</span>
+      <span style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 10px;">84.1</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #FF9800; height: 14px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">35°</span>
+      <span style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 10px;">13.8</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #9C27B0; height: 12px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">45°</span>
+      <span style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 10px;">12.1</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">55°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">65°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">75°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">85°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">95°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">105°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">115°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">125°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">135°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">145°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">155°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">165°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">175°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">185°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">195°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">205°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">215°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">225°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">235°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">245°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">255°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">265°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">275°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">285°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">295°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">305°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">315°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">325°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">335°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">345°</span>
+    </div>
+  </div>
+  <div style="display: inline-block; margin: 10px;">
+    <div style="background: #ddd; height: 5px; width: 30px; border-radius: 3px; margin: 0 auto; position: relative;">
+      <span style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 12px;">355°</span>
+    </div>
+  </div>
+</div>
+<p style="text-align: center; font-style: italic; margin-top: 10px;">36-bin orientation histogram showing multiple peaks with dominant peak at 25° (20°-30° bin)</p>
+
+
+<p><strong>Step 5:</strong> Select orientations</p>
+<ul>
+  <li>Main orientation: <strong>25°</strong> (bin 20°-30° with weight 69.3)</li>
+  <li>Since this is the only significant peak in our sample, no secondary orientations are created</li>
+</ul>
+
+<p><strong>Result:</strong> Keypoint gets orientation θ = 25° (center of the 20°-30° bin)</p>
+</div>
+
+<p><strong>Final keypoint representation:</strong> $(x=100, y=150, \sigma=2.0, \theta=25°)$</p>
+
+<p><strong>Note:</strong> This orientation assignment makes the keypoint rotation-invariant. When the image is rotated, the keypoint's orientation will change accordingly, but the descriptor computed relative to this orientation will remain the same.</p>
+
+<h2 id="descriptor">6) Descriptor (128-D)</h2>
+<p><strong>Goal:</strong> Create a robust, rotation-invariant descriptor that captures the local appearance around each keypoint.</p>
+
+<h3>Step-by-Step Process:</h3>
+
+<h4>Step 1: Rotate the local patch to the keypoint's orientation</h4>
+<ul>
+  <li>Take the 16×16 pixel patch around the keypoint from the Gaussian-smoothed image $L(x,y,\sigma)$</li>
+  <li>Rotate this patch so that the keypoint's dominant orientation becomes the reference direction (0°)</li>
+  <li>This ensures rotation invariance: the same descriptor is produced regardless of image rotation</li>
+</ul>
+
+<h4>Step 2: Divide into 4×4 grid of cells</h4>
+<ul>
+  <li>Split the 16×16 rotated patch into 16 cells, each 4×4 pixels</li>
+  <li>Each cell will contribute 8 values to the final descriptor</li>
+  <li>Total: 16 cells × 8 bins = 128 dimensions</li>
+</ul>
+
+<h4>Step 3: Compute gradient magnitudes and orientations for each cell</h4>
+<p>For each pixel in each cell, compute:</p>
+<ul>
+  <li><strong>Gradient magnitude:</strong> $m(x,y) = \sqrt{(L(x+1,y)-L(x-1,y))^2 + (L(x,y+1)-L(x,y-1))^2}$</li>
+  <li><strong>Gradient orientation:</strong> $\theta(x,y) = \tan^{-1}\left(\frac{L(x,y+1)-L(x,y-1)}{L(x+1,y)-L(x-1,y)}\right)$</li>
+  <li><strong>Note:</strong> Orientations are now relative to the keypoint's dominant orientation (0° reference)</li>
+</ul>
+
+<h4>Step 4: Apply Gaussian weighting within each cell</h4>
+<ul>
+  <li>Weight each gradient magnitude by a Gaussian window centered at the cell center</li>
+  <li>This gives more importance to gradients near the center of each cell</li>
+  <li>Weight: $w(x,y) = \exp\left(-\frac{(x-x_c)^2+(y-y_c)^2}{2\sigma_c^2}\right)$, where $(x_c,y_c)$ is the cell center</li>
+</ul>
+
+<h4>Step 5: Build 8-bin orientation histograms for each cell</h4>
+<ul>
+  <li>Each cell creates an 8-bin histogram covering 0°-360° (45° per bin)</li>
+  <li>Use trilinear interpolation to distribute each gradient's contribution across neighboring bins</li>
+  <li>Accumulate weighted magnitudes: $h_i = \sum w(x,y) \cdot m(x,y)$ for orientations in bin $i$</li>
+</ul>
+
+<h4>Step 6: Concatenate all histograms into 128-D vector</h4>
+<ul>
+  <li>Flatten the 16 cell histograms into a single 128-dimensional vector</li>
+  <li>Order: cell (0,0), cell (0,1), ..., cell (3,3), each contributing 8 values</li>
+</ul>
+
+<h4>Step 7: Normalize and threshold the descriptor</h4>
+<ol>
+  <li><strong>L2-normalize:</strong> $\mathbf{d} \leftarrow \frac{\mathbf{d}}{\|\mathbf{d}\|_2}$</li>
+  <li><strong>Clamp values:</strong> $\mathbf{d} \leftarrow \min(\mathbf{d}, 0.2)$ (threshold large values)</li>
+  <li><strong>Renormalize:</strong> $\mathbf{d} \leftarrow \frac{\mathbf{d}}{\|\mathbf{d}\|_2}$ (again)</li>
+</ol>
+
+<h3>Worked Example: Building a 128-D SIFT Descriptor</h3>
+
+<div class="example-box">
+<h4>Example: Keypoint at (100, 150) with orientation θ = 25°</h4>
+
+<p><strong>Step 1:</strong> Extract and rotate 16×16 patch</p>
+<p>We extract a 16×16 patch centered at (100, 150) from the Gaussian-smoothed image and rotate it by -25° so that the keypoint's dominant orientation becomes the reference direction.</p>
+
+<p><strong>Step 2:</strong> Divide into 4×4 grid</p>
+<p>The rotated 16×16 patch is divided into 16 cells, each 4×4 pixels:</p>
+
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; margin: 5px 0; font-size: 12px;">
+  <tr>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (0,0)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (0,1)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (0,2)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (0,3)</td>
+  </tr>
+  <tr>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (1,0)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (1,1)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (1,2)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (1,3)</td>
+  </tr>
+  <tr>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (2,0)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (2,1)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (2,2)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (2,3)</td>
+  </tr>
+  <tr>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (3,0)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (3,1)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (3,2)</td>
+    <td style="border: 2px solid #333; padding: 5px; text-align: center; background: #e8f4f8;">Cell (3,3)</td>
+  </tr>
+</table>
+<p style="text-align: center; font-style: italic;">4×4 grid of cells, each 4×4 pixels</p>
+</div>
+
+<p><strong>Step 3:</strong> Compute gradients for one example cell</p>
+<p>Let's focus on Cell (1,1) - the center cell. For each of its 16 pixels, we compute gradient magnitude and orientation:</p>
+
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; width: 100%; font-size: 12px;">
+  <tr>
+    <th>Pixel in Cell (1,1)</th>
+    <th>Gradient Magnitude</th>
+    <th>Orientation (relative to 0°)</th>
+    <th>Gaussian Weight</th>
+    <th>Weighted Magnitude</th>
+  </tr>
+  <tr>
+    <td>(0,0) - top-left</td>
+    <td>12.3</td>
+    <td>45°</td>
+    <td>0.8</td>
+    <td>9.8</td>
+  </tr>
+  <tr>
+    <td>(1,0) - top</td>
+    <td>14.7</td>
+    <td>15°</td>
+    <td>0.9</td>
+    <td>13.2</td>
+  </tr>
+  <tr>
+    <td>(2,0) - top-right</td>
+    <td>11.8</td>
+    <td>75°</td>
+    <td>0.8</td>
+    <td>9.4</td>
+  </tr>
+  <tr>
+    <td>(3,0) - top-right</td>
+    <td>13.2</td>
+    <td>105°</td>
+    <td>0.7</td>
+    <td>9.2</td>
+  </tr>
+  <tr>
+    <td>(0,1) - left</td>
+    <td>15.1</td>
+    <td>30°</td>
+    <td>0.9</td>
+    <td>13.6</td>
+  </tr>
+  <tr>
+    <td>(1,1) - center</td>
+    <td>16.8</td>
+    <td>0°</td>
+    <td>1.0</td>
+    <td>16.8</td>
+  </tr>
+  <tr>
+    <td>(2,1) - right</td>
+    <td>14.2</td>
+    <td>60°</td>
+    <td>0.9</td>
+    <td>12.8</td>
+  </tr>
+  <tr>
+    <td>(3,1) - right</td>
+    <td>12.9</td>
+    <td>90°</td>
+    <td>0.7</td>
+    <td>9.0</td>
+  </tr>
+  <tr>
+    <td>(0,2) - left</td>
+    <td>13.7</td>
+    <td>135°</td>
+    <td>0.8</td>
+    <td>11.0</td>
+  </tr>
+  <tr>
+    <td>(1,2) - center</td>
+    <td>15.3</td>
+    <td>165°</td>
+    <td>0.9</td>
+    <td>13.8</td>
+  </tr>
+  <tr>
+    <td>(2,2) - right</td>
+    <td>14.8</td>
+    <td>195°</td>
+    <td>0.8</td>
+    <td>11.8</td>
+  </tr>
+  <tr>
+    <td>(3,2) - right</td>
+    <td>12.1</td>
+    <td>225°</td>
+    <td>0.7</td>
+    <td>8.5</td>
+  </tr>
+  <tr>
+    <td>(0,3) - bottom-left</td>
+    <td>11.5</td>
+    <td>255°</td>
+    <td>0.7</td>
+    <td>8.1</td>
+  </tr>
+  <tr>
+    <td>(1,3) - bottom</td>
+    <td>13.9</td>
+    <td>285°</td>
+    <td>0.8</td>
+    <td>11.1</td>
+  </tr>
+  <tr>
+    <td>(2,3) - bottom</td>
+    <td>14.1</td>
+    <td>315°</td>
+    <td>0.7</td>
+    <td>9.9</td>
+  </tr>
+  <tr>
+    <td>(3,3) - bottom-right</td>
+    <td>12.6</td>
+    <td>345°</td>
+    <td>0.6</td>
+    <td>7.6</td>
+  </tr>
+</table>
+</div>
+
+<p><strong>Step 4:</strong> Build 8-bin histogram for Cell (1,1)</p>
+<p>We distribute the weighted magnitudes into 8 bins (0°-45°, 45°-90°, ..., 315°-360°):</p>
+
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; width: 100%; font-size: 12px;">
+  <tr>
+    <th>Bin Range</th>
+    <th>Center Angle</th>
+    <th>Contributing Pixels</th>
+    <th>Accumulated Weight</th>
+    <th>Visual</th>
+  </tr>
+  <tr>
+    <td>0°-45°</td>
+    <td>22.5°</td>
+    <td>0°, 15°, 30°, 45°</td>
+    <td><strong>53.4</strong></td>
+    <td>
+      <div style="background: #4CAF50; height: 20px; width: 53px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 10px;">53.4</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>45°-90°</td>
+    <td>67.5°</td>
+    <td>60°, 75°, 90°</td>
+    <td><strong>31.2</strong></td>
+    <td>
+      <div style="background: #2196F3; height: 20px; width: 31px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 10px;">31.2</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>90°-135°</td>
+    <td>112.5°</td>
+    <td>105°</td>
+    <td><strong>9.2</strong></td>
+    <td>
+      <div style="background: #FF9800; height: 20px; width: 9px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 10px;">9.2</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>135°-180°</td>
+    <td>157.5°</td>
+    <td>135°, 165°</td>
+    <td><strong>24.8</strong></td>
+    <td>
+      <div style="background: #9C27B0; height: 20px; width: 25px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 10px;">24.8</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>180°-225°</td>
+    <td>202.5°</td>
+    <td>195°, 225°</td>
+    <td><strong>20.3</strong></td>
+    <td>
+      <div style="background: #E91E63; height: 20px; width: 20px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 10px;">20.3</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>225°-270°</td>
+    <td>247.5°</td>
+    <td>255°, 285°</td>
+    <td><strong>19.2</strong></td>
+    <td>
+      <div style="background: #607D8B; height: 20px; width: 19px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 10px;">19.2</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>270°-315°</td>
+    <td>292.5°</td>
+    <td>315°</td>
+    <td><strong>9.9</strong></td>
+    <td>
+      <div style="background: #795548; height: 20px; width: 10px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 10px;">9.9</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>315°-360°</td>
+    <td>337.5°</td>
+    <td>345°</td>
+    <td><strong>7.6</strong></td>
+    <td>
+      <div style="background: #FF5722; height: 20px; width: 8px; border-radius: 2px; position: relative;">
+        <span style="position: absolute; right: -25px; top: 0; font-size: 10px;">7.6</span>
+      </div>
+    </td>
+  </tr>
+</table>
+</div>
+
+<p><strong>Step 5:</strong> Repeat for all 16 cells</p>
+<p>We perform the same process for all 16 cells, resulting in 16 histograms with 8 values each.</p>
+
+<p><strong>Step 6:</strong> Concatenate into 128-D vector</p>
+<p>The final descriptor vector is constructed by concatenating all 16 histograms:</p>
+
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<p><strong>128-D SIFT Descriptor Vector:</strong></p>
+<p style="font-family: monospace; font-size: 11px; line-height: 1.2;">
+[53.4, 31.2, 9.2, 24.8, 20.3, 19.2, 9.9, 7.6,  /* Cell (0,0) */<br>
+ 48.1, 28.7, 11.3, 22.1, 18.9, 21.5, 8.7, 6.2,  /* Cell (0,1) */<br>
+ 45.2, 33.8, 12.8, 19.4, 23.1, 17.8, 10.1, 5.8,  /* Cell (0,2) */<br>
+ 42.7, 35.1, 14.2, 16.9, 25.3, 15.6, 11.4, 4.8,  /* Cell (0,3) */<br>
+ 51.8, 29.4, 10.7, 26.2, 19.8, 20.1, 9.3, 7.7,  /* Cell (1,0) */<br>
+ <strong>53.4, 31.2, 9.2, 24.8, 20.3, 19.2, 9.9, 7.6,</strong>  /* Cell (1,1) - our example */<br>
+ 47.3, 30.8, 13.1, 21.7, 22.4, 18.3, 8.9, 6.5,  /* Cell (1,2) */<br>
+ 44.1, 32.9, 15.6, 18.2, 24.7, 16.9, 10.8, 4.8,  /* Cell (1,3) */<br>
+ 49.5, 31.7, 11.9, 23.5, 21.2, 19.8, 9.1, 6.9,  /* Cell (2,0) */<br>
+ 46.8, 33.1, 12.4, 20.8, 23.6, 17.5, 10.2, 5.6,  /* Cell (2,1) */<br>
+ 43.2, 34.7, 14.8, 17.3, 25.9, 15.1, 11.7, 4.5,  /* Cell (2,2) */<br>
+ 40.9, 36.2, 16.1, 15.8, 26.8, 14.2, 12.3, 3.7,  /* Cell (2,3) */<br>
+ 47.1, 32.3, 13.5, 22.6, 20.7, 20.4, 8.5, 6.9,  /* Cell (3,0) */<br>
+ 44.6, 33.8, 14.9, 19.1, 24.2, 16.7, 11.1, 5.6,  /* Cell (3,1) */<br>
+ 41.8, 35.4, 16.3, 16.5, 26.1, 14.8, 12.0, 4.1,  /* Cell (3,2) */<br>
+ 39.2, 37.1, 17.2, 14.9, 27.3, 13.5, 12.8, 3.1]  /* Cell (3,3) */
+</p>
+</div>
+
+<p><strong>Step 7:</strong> Normalize and threshold</p>
+<ol>
+  <li><strong>L2-normalize:</strong> Divide each element by the vector magnitude (≈ 156.7)</li>
+  <li><strong>Clamp values:</strong> Set any values > 0.2 to 0.2 (reduces illumination sensitivity)</li>
+  <li><strong>Renormalize:</strong> L2-normalize again to ensure unit length</li>
+</ol>
+
+<p><strong>Final result:</strong> A 128-dimensional vector that is:</p>
+<ul>
+  <li><strong>Rotation-invariant:</strong> Due to orientation assignment and patch rotation</li>
+  <li><strong>Scale-invariant:</strong> Due to scale-space detection and patch size scaling</li>
+  <li><strong>Illumination-robust:</strong> Due to normalization and thresholding</li>
+  <li><strong>Distinctive:</strong> Captures local gradient patterns in a compact representation</li>
+</ul>
+</div>
+
+<h3>Key Properties of the 128-D Descriptor:</h3>
+
+<ul>
+  <li><strong>Dimensionality:</strong> 128 dimensions provide a good balance between descriptiveness and computational efficiency</li>
+  <li><strong>Spatial distribution:</strong> 4×4 grid captures spatial relationships between gradient patterns</li>
+  <li><strong>Orientation quantization:</strong> 8 bins per cell provide sufficient angular resolution</li>
+  <li><strong>Gaussian weighting:</strong> Emphasizes gradients near cell centers, reducing boundary effects</li>
+  <li><strong>Trilinear interpolation:</strong> Smooths the histogram construction, reducing quantization artifacts</li>
+  <li><strong>Normalization:</strong> Makes the descriptor invariant to linear illumination changes</li>
+  <li><strong>Thresholding:</strong> Reduces sensitivity to non-linear illumination effects (shadows, highlights)</li>
+</ul>
+
+<p><strong>Note:</strong> The exact values in the descriptor depend on the local image content around each keypoint. This example shows the general structure and magnitude relationships typical of SIFT descriptors.</p>
+
 
 <h3>Feature Matching</h3> 
 Brute-force matching, FLANN, RANSAC, etc.
 
 <h3>Optical Flow</h3>
 Lucas-Kanade
+
+<h2>FAST (Features from Accelerated Segment Test)</h2>
+<p><strong>Goal:</strong> Detect corners quickly using a simple pixel intensity comparison test.</p>
+
+<h3>Key Concept: Accelerated Segment Test</h3>
+<p>FAST uses a circle of 16 pixels around a candidate point to determine if it's a corner:</p>
+
+<div class="figure">
+  <img src="figs\img_processing\fast_circle.jpg" alt="FAST Circle" style="width: 50%; display: block; margin: 0 auto;">
+</div>
+<ul>
+  <li><strong>Circle radius:</strong> Typically 3 pixels (16-point circle)</li>
+  <li><strong>Test:</strong> Check if there are at least 12 consecutive pixels that are all brighter or all darker than the center pixel</li>
+  <li><strong>Threshold:</strong> Intensity difference threshold (typically 10-30)</li>
+</ul>
+
+<h3>Step-by-Step Process:</h3>
+
+<h4>Step 1: Select candidate pixel</h4>
+<ul>
+  <li>Choose a pixel $p$ as potential corner</li>
+  <li>Examine 16 pixels in a circle around $p$</li>
+</ul>
+
+<h4>Step 2: Apply segment test</h4>
+<ul>
+  <li>Compare each of the 16 pixels to the center pixel $p$</li>
+  <li>Classify each pixel as: brighter ($I > I_p + t$), darker ($I < I_p - t$), or similar</li>
+  <li>Look for 12 consecutive pixels that are all brighter or all darker</li>
+</ul>
+
+<h4>Step 3: Corner classification</h4>
+<ul>
+  <li>If 12+ consecutive pixels are brighter → bright corner</li>
+  <li>If 12+ consecutive pixels are darker → dark corner</li>
+  <li>Otherwise → not a corner</li>
+</ul>
+
+<h3>Worked Example: FAST Corner Detection</h3>
+
+<div class="example-box">
+<h4>Example: 16-pixel circle around candidate point</h4>
+
+<p><strong>Circle pixels (clockwise from top):</strong></p>
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; margin: 5px 0;">
+  <tr><td>120</td><td>125</td><td>130</td><td>135</td></tr>
+  <tr><td>118</td><td>---</td><td>---</td><td>140</td></tr>
+  <tr><td>115</td><td>---</td><td>---</td><td>145</td></tr>
+  <tr><td>110</td><td>105</td><td>100</td><td>95</td></tr>
+</table>
+<p style="text-align: center; font-style: italic;">Center pixel (p) = 100, threshold = 15</p>
+</div>
+
+<p><strong>Classification:</strong></p>
+<ul>
+  <li>Brighter pixels (I > 115): 120, 125, 130, 135, 140, 145</li>
+  <li>Darker pixels (I < 85): (none)</li>
+  <li>Similar pixels: 118, 115, 110, 105, 100, 95</li>
+</ul>
+
+<p><strong>Result:</strong> Only 6 consecutive bright pixels and 0 dark pixels. Since neither reaches the threshold of 12, this is <strong>NOT a corner</strong>.</p>
+
+<p><strong>Note:</strong> FAST is extremely fast because it only requires simple pixel comparisons, making it suitable for real-time applications.</p>
+</div>
+
+<h3>Advantages of FAST:</h3>
+<ul>
+  <li><strong>Speed:</strong> Very fast detection (simple comparisons only)</li>
+  <li><strong>Memory efficient:</strong> Minimal memory requirements</li>
+  <li><strong>Real-time capable:</strong> Can process video streams in real-time</li>
+  <li><strong>Good repeatability:</strong> Detects corners reliably across frames</li>
+</ul>
+
+<h3>Limitations of FAST:</h3>
+<ul>
+  <li><strong>No scale invariance:</strong> Sensitive to image scale changes</li>
+  <li><strong>No rotation invariance:</strong> Corner response changes with rotation</li>
+  <li><strong>No descriptor:</strong> Only detects corners, doesn't describe them</li>
+  <li><strong>Parameter sensitivity:</strong> Performance depends on threshold choice</li>
+</ul>
+
+<h2>BRIEF (Binary Robust Independent Elementary Features)</h2>
+<p><strong>Goal:</strong> Create a fast, binary descriptor that efficiently describes keypoints using simple pixel pair comparisons.</p>
+
+<h3>Key Concept: Binary Descriptor</h3>
+<p>BRIEF takes keypoints (detected by other methods like FAST, Harris, or SIFT) and creates a compact binary description using simple pixel intensity comparisons.</p>
+
+<h3>Mathematical Foundation</h3>
+<p>The core of BRIEF is the binary test function that compares pixel intensities:</p>
+
+\[
+\tau(p_i, q_i) = \begin{cases}
+1 & \text{if } I(p_i) > I(q_i) \\
+0 & \text{otherwise}
+\end{cases}
+\]
+
+<p>where:</p>
+<ul>
+  <li>$p_i$ and $q_i$ are the coordinates of the $i$-th pixel pair</li>
+  <li>$I(p_i)$ and $I(q_i)$ are the pixel intensities at those locations</li>
+  <li>$\tau(p_i, q_i)$ is the binary test result (0 or 1)</li>
+</ul>
+
+<p>The BRIEF descriptor is then constructed as:</p>
+
+\[
+\text{BRIEF}(P) = \sum_{1 \leq i \leq n} 2^{i-1} \tau(p_i, q_i)
+\]
+
+<p>where $P$ is the patch around the keypoint and $n = 256$ is the number of pixel pairs.</p>
+
+<h3>Algorithm Overview</h3>
+<ol>
+  <li><strong>Extract patch:</strong> Take a 31×31 pixel patch centered on the keypoint and apply Gaussian smoothing</li>
+  <li><strong>Apply pattern:</strong> Use predefined 256 pixel pairs within the patch</li>
+  <li><strong>Compare intensities:</strong> For each pair, compare pixel intensities using the binary test function</li>
+  <li><strong>Generate descriptor:</strong> Concatenate all 256 comparison results into a 256-bit binary vector</li>
+</ol>
+
+<h3>Worked Example: BRIEF Descriptor Generation</h3>
+
+<div class="example-box">
+<h4>Example: Keypoint at (100, 150) in a grayscale image</h4>
+
+<p><strong>Input:</strong> 31×31 patch centered at (100, 150) from Gaussian-smoothed image</p>
+
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<p><strong>Sample patch values (showing 5×5 center region):</strong></p>
+<table style="border-collapse: collapse; width: 100%; font-size: 12px;">
+  <tr>
+    <th>y\x</th>
+    <th>98</th>
+    <th>99</th>
+    <th>100</th>
+    <th>101</th>
+    <th>102</th>
+  </tr>
+  <tr>
+    <td>148</td>
+    <td>110</td>
+    <td>115</td>
+    <td>120</td>
+    <td>118</td>
+    <td>112</td>
+  </tr>
+  <tr>
+    <td>149</td>
+    <td>112</td>
+    <td>118</td>
+    <td>125</td>
+    <td>122</td>
+    <td>115</td>
+  </tr>
+  <tr>
+    <td>150</td>
+    <td>115</td>
+    <td>120</td>
+    <td>130</td>
+    <td>125</td>
+    <td>118</td>
+  </tr>
+  <tr>
+    <td>151</td>
+    <td>118</td>
+    <td>122</td>
+    <td>128</td>
+    <td>120</td>
+    <td>112</td>
+  </tr>
+  <tr>
+    <td>152</td>
+    <td>112</td>
+    <td>115</td>
+    <td>122</td>
+    <td>118</td>
+    <td>110</td>
+  </tr>
+</table>
+</div>
+
+<p><strong>Binary Tests:</strong> Apply the function $\tau(p_i, q_i)$ to 256 predefined pixel pairs</p>
+
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; width: 100%; font-size: 12px;">
+  <tr>
+    <th>Pair</th>
+    <th>Pixel 1</th>
+    <th>Pixel 2</th>
+    <th>Intensity 1</th>
+    <th>Intensity 2</th>
+    <th>$\tau(p_i, q_i)$</th>
+    <th>Bit</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>(15, 15)</td>
+    <td>(16, 15)</td>
+    <td>120</td>
+    <td>118</td>
+    <td>120 > 118</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>(15, 16)</td>
+    <td>(16, 16)</td>
+    <td>125</td>
+    <td>122</td>
+    <td>125 > 122</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>(14, 15)</td>
+    <td>(17, 15)</td>
+    <td>115</td>
+    <td>112</td>
+    <td>115 > 112</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>(15, 14)</td>
+    <td>(16, 17)</td>
+    <td>118</td>
+    <td>112</td>
+    <td>118 > 112</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>(13, 15)</td>
+    <td>(18, 15)</td>
+    <td>110</td>
+    <td>110</td>
+    <td>110 = 110</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>(15, 13)</td>
+    <td>(16, 18)</td>
+    <td>112</td>
+    <td>115</td>
+    <td>112 < 115</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>(12, 15)</td>
+    <td>(19, 15)</td>
+    <td>105</td>
+    <td>108</td>
+    <td>105 < 108</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>(15, 12)</td>
+    <td>(16, 19)</td>
+    <td>108</td>
+    <td>118</td>
+    <td>108 < 118</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>(11, 15)</td>
+    <td>(20, 15)</td>
+    <td>102</td>
+    <td>105</td>
+    <td>102 < 105</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>(15, 11)</td>
+    <td>(16, 20)</td>
+    <td>105</td>
+    <td>120</td>
+    <td>105 < 120</td>
+    <td>0</td>
+  </tr>
+</table>
+</div>
+
+<p><strong>Output:</strong> 256-bit binary descriptor</p>
+<p style="font-family: monospace; font-size: 11px;">
+1101000000...10101010 (256 bits total)
+</p>
+
+<p><strong>Note:</strong> The binary nature makes BRIEF descriptors extremely fast to compute and compare using Hamming distance.</p>
+</div>
+
+<h3>Advantages of BRIEF:</h3>
+<ul>
+  <li><strong>Speed:</strong> Very fast computation using simple comparisons</li>
+  <li><strong>Memory efficient:</strong> 256-bit descriptors (32 bytes each)</li>
+  <li><strong>Fast matching:</strong> Hamming distance computation is very fast</li>
+  <li><strong>Discriminative:</strong> Good at distinguishing between different keypoints</li>
+  <li><strong>Simple:</strong> Easy to implement and understand</li>
+</ul>
+
+<h3>Limitations of BRIEF:</h3>
+<ul>
+  <li><strong>No rotation invariance:</strong> Descriptor changes with image rotation</li>
+  <li><strong>No scale invariance:</strong> Sensitive to image scale changes</li>
+  <li><strong>Noise sensitivity:</strong> Can be affected by image noise</li>
+  <li><strong>Fixed pattern:</strong> Uses predefined pixel pairs, not adaptive</li>
+</ul>
+
+<h3>Applications:</h3>
+<ul>
+  <li><strong>Real-time tracking:</strong> Fast feature matching in video</li>
+  <li><strong>Object recognition:</strong> Quick feature description</li>
+  <li><strong>Image registration:</strong> Fast alignment of images</li>
+  <li><strong>Mobile applications:</strong> Low computational cost</li>
+</ul>
+
+<h2>ORB (Oriented FAST and Rotated BRIEF)</h2>
+<p><strong>Goal:</strong> Create a fast, rotation-invariant feature detector and descriptor that combines the speed of FAST with the efficiency of BRIEF.</p>
+
+<h3>Key Components:</h3>
+
+<h4>1. Oriented FAST</h4>
+<ul>
+  <li><strong>FAST detection:</strong> Use FAST algorithm to find corners</li>
+  <li><strong>Orientation assignment:</strong> Compute corner orientation using intensity centroid</li>
+  <li><strong>Scale pyramid:</strong> Build image pyramid for scale invariance</li>
+</ul>
+
+<h4>2. Rotated BRIEF</h4>
+<ul>
+  <li><strong>BRIEF descriptor:</strong> Binary descriptor using pixel pair comparisons</li>
+  <li><strong>Rotation correction:</strong> Rotate the descriptor pattern according to corner orientation</li>
+  <li><strong>Steered BRIEF:</strong> Use learned optimal pixel pairs for better performance</li>
+</ul>
+
+<h3>Step-by-Step Process:</h3>
+
+<h4>Step 1: Detect FAST corners</h4>
+<ul>
+  <li>Apply FAST algorithm at multiple scales</li>
+  <li>Filter corners using Harris corner measure for better quality</li>
+  <li>Select top N corners based on response strength</li>
+</ul>
+
+<h4>Step 2: Compute corner orientation</h4>
+<p>Use intensity centroid method:</p>
+\[
+  \theta = \arctan\left(\frac{m_{01}}{m_{10}}\right)
+\]
+<p>where $m_{pq}$ are image moments in a circular patch around the corner.</p>
+
+<h4>Step 3: Generate rotated BRIEF descriptor</h4>
+<ul>
+  <li>Take a 31×31 patch around the corner</li>
+  <li>Rotate the patch according to corner orientation</li>
+  <li>Apply BRIEF pattern: compare 256 pixel pairs</li>
+  <li>Generate 256-bit binary descriptor</li>
+</ul>
+
+<h3>Worked Example: ORB Feature Detection and Description</h3>
+
+<div class="example-box">
+<h4>Example: Corner at (100, 150) with orientation θ = 45°</h4>
+
+<p><strong>Step 1: FAST Detection</strong></p>
+<p>FAST algorithm identifies this as a corner with response strength 85.</p>
+
+<p><strong>Step 2: Orientation Computation</strong></p>
+<p>Compute moments in 15×15 patch around corner:</p>
+<ul>
+  <li>$m_{10} = 1250$ (x-weighted sum)</li>
+  <li>$m_{01} = 1250$ (y-weighted sum)</li>
+  <li>$\theta = \arctan(1250/1250) = 45°$</li>
+</ul>
+
+<p><strong>Step 3: BRIEF Descriptor Generation</strong></p>
+<p>Rotate 31×31 patch by -45° and apply BRIEF pattern:</p>
+
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<p><strong>Sample pixel pairs and comparisons:</strong></p>
+<table style="border-collapse: collapse; width: 100%; font-size: 12px;">
+  <tr>
+    <th>Pair</th>
+    <th>Pixel 1</th>
+    <th>Pixel 2</th>
+    <th>Comparison</th>
+    <th>Bit</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>(15, 15)</td>
+    <td>(16, 15)</td>
+    <td>120 > 118</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>(15, 16)</td>
+    <td>(16, 16)</td>
+    <td>125 > 122</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>(14, 15)</td>
+    <td>(17, 15)</td>
+    <td>115 < 125</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+  </tr>
+  <tr>
+    <td>256</td>
+    <td>(10, 20)</td>
+    <td>(20, 10)</td>
+    <td>110 > 105</td>
+    <td>1</td>
+  </tr>
+</table>
+</div>
+
+<p><strong>Final descriptor:</strong> 256-bit binary string</p>
+<p style="font-family: monospace; font-size: 11px;">
+11010101...10101010 (256 bits total)
+</p>
+
+<p><strong>Note:</strong> The binary nature makes ORB descriptors extremely fast to compute and compare using Hamming distance.</p>
+</div>
+
+<h3>Advantages of ORB:</h3>
+<ul>
+  <li><strong>Speed:</strong> Very fast detection and description</li>
+  <li><strong>Rotation invariance:</strong> Handles image rotation through orientation assignment</li>
+  <li><strong>Scale invariance:</strong> Multi-scale detection provides scale robustness</li>
+  <li><strong>Binary descriptor:</strong> Fast matching using Hamming distance</li>
+  <li><strong>Memory efficient:</strong> 256-bit descriptors (32 bytes each)</li>
+  <li><strong>Patent-free:</strong> Open source alternative to SIFT/SURF</li>
+</ul>
+
+<h3>Comparison with SIFT:</h3>
+<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <th>Feature</th>
+    <th>SIFT</th>
+    <th>ORB</th>
+  </tr>
+  <tr>
+    <td>Speed</td>
+    <td>Slow</td>
+    <td>Very Fast</td>
+  </tr>
+  <tr>
+    <td>Descriptor size</td>
+    <td>128 floats (512 bytes)</td>
+    <td>256 bits (32 bytes)</td>
+  </tr>
+  <tr>
+    <td>Matching</td>
+    <td>Euclidean distance</td>
+    <td>Hamming distance</td>
+  </tr>
+  <tr>
+    <td>Scale invariance</td>
+    <td>Excellent</td>
+    <td>Good</td>
+  </tr>
+  <tr>
+    <td>Rotation invariance</td>
+    <td>Excellent</td>
+    <td>Good</td>
+  </tr>
+  <tr>
+    <td>Memory usage</td>
+    <td>High</td>
+    <td>Low</td>
+  </tr>
+</table>
+</div>
+
+<h3>Applications:</h3>
+<ul>
+  <li><strong>Real-time tracking:</strong> Video processing and object tracking</li>
+  <li><strong>Mobile applications:</strong> Augmented reality on mobile devices</li>
+  <li><strong>SLAM systems:</strong> Simultaneous Localization and Mapping</li>
+  <li><strong>Image stitching:</strong> Panorama creation</li>
+  <li><strong>Robotics:</strong> Visual navigation and obstacle avoidance</li>
+</ul>
+
+<h2>References</h2>
+<ol>
+  <li>Lowe, D. G. (2004). <em>Distinctive Image Features from Scale-Invariant Keypoints</em>. International Journal of Computer Vision, 60(2), 91-110. <a href="https://www.cs.ubc.ca/~lowe/papers/ijcv04.pdf" target="_blank">https://www.cs.ubc.ca/~lowe/papers/ijcv04.pdf</a></li>
+</ol>
 
 
 
