@@ -2183,6 +2183,11 @@ Lucas-Kanade
 
 The Lucas-Kanade method is a popular sparse optical flow estimation algorithm that is invented by Bruce D. Lucas and Prof. Takeo Kanade in 1981 from CMU. It assumes small motion and brightness constancy. It uses a local patch around the pixel of interest and solves a system of linear equations to estimate the flow vector.
 
+<div class="figure">
+    <img src="figs/img_processing/sparse_flow.png" alt="sparse optical flow illustration", style="width: 70%;">
+    <div class="figure-caption">Sparse optical flow illustration</div>
+</div>
+
 The brightness constancy assumption states that the intensity of a pixel does not change between two frames. Mathematically, it can be expressed as:
     
 \begin{equation}
@@ -2253,6 +2258,10 @@ The above linear system is usually over-determined, and we solve it with a least
 \begin{equation}
 \begin{bmatrix} u \\ v \end{bmatrix} = -(A^\top A)^{-1} A^\top b
 \end{equation}
+
+Although a decades old algorithm, it is still widely used in sparse direct methods in visual SLAM, including many SOTA methods like SVO. We will visit them in the next section.
+
+
 
 
 <h2>References</h2>
