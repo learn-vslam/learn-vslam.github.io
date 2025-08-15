@@ -5,28 +5,29 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:300,400,700">
     <link rel="stylesheet" href="../../latex.css">
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script>
-        MathJax = {
-          options: {
-            // Configure to process math when it's visible or based on user interaction
-            processHtmlClass: 'math', // Only process elements with this class
-            renderActions: {
-              // Disable initial automatic rendering if you're using lazy loading
-              initial: [1, 'typesetGlobal', true],
-              lazy: [2, 'lazyLoad', true], // Example for lazy loading
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+          tex2jax: {
+            inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+            displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+            processEscapes: true
+          },
+          TeX: {
+            equationNumbers: {
+              autoNumber: "AMS",
+              useLabelIds: true
             }
           },
-          tex: {
-            // Configure TeX input if needed
-          },
-          svg: {
-            // Configure SVG output if using SVG
+          "HTML-CSS": {
+            availableFonts: ["STIX"],
+            linebreaks: { automatic: true },
+            imageFont: null
           }
-        };
-        </script>
-    <script type="text/javascript" async
-      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
-    </script>
+        });
+      </script>
+      <script type="text/javascript" async
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+      </script>
     <meta charset="UTF-8">
     <base target="_blank">
     <title> Filtering-based Methods for Visual SLAM</title>
@@ -164,27 +165,30 @@
 <h2>Point Feature Extraction and Description</h2>
 SIFT, FAST, BRIEF, ORB, etc.
 
-<h3> sobel filter </h3>
+<h3> Sobel Filter </h3>
 A Sobel filter is a small 3 x 3 convolution kernel that emphasizes changes in a specific direction.
 
 For horizontal changes $I_x$:
 
-\\
+
+\begin{equation}
 S_x = \begin{bmatrix}
     -1 & 0 & 1 \\
     -2 & 0 & 2 \\
     -1 & 0 & 1
 \end{bmatrix}
+\end{equation}
 
 For vertical changes $I_y$:
 
-\\
+
+\begin{equation}
 S_y = \begin{bmatrix}
     1 & 2 & 1 \\
     0 & 0 & 0 \\
     -1 & -2 & -1
 \end{bmatrix}
-
+\end{equation}
 Convolve with $S_x$ and $S_y$ to get gradients $I_x$ and $I_y$
 
 <h3 > Harris Corner Detector</h3>
@@ -201,10 +205,10 @@ M = \begin{bmatrix}
 R = \det(M) - k \left( \mathrm{trace}(M) \right)^2
 \]
 
-entries with large R values are corners
+entries with large R values are corners.
 
 
-\\
+
 Let's work throgh an example:
 $$
 I = \begin{bmatrix}
@@ -227,7 +231,7 @@ $$
 \end{bmatrix}
 $$
 
-Multiply element-wise with S_x:
+Multiply element-wise with $S_x$:
 $$
 \begin{bmatrix}
 -1 & 0 & 1 \\
@@ -260,6 +264,11 @@ $$
 Harris corners work well at one scale, but:
 
 If you zoom in/out → the corner's size changes, Harris might miss it.
+<div class="figure">
+    <img src="figs\img_processing\harris_failure.jpg" alt="Harris corner detection" style="width: 50%; display: block; margin: 0 auto;">
+    <p style="text-align: center; font-style: italic; margin-top: 10px;">Harris corner detection</p>
+</div>
+
 
 If you rotate the image, gradient directions change → Harris doesn't give you a rotation angle.
 
