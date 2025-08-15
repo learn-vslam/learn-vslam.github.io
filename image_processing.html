@@ -6,28 +6,28 @@
     <link rel="stylesheet" href="../../latex.css">
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script type="text/x-mathjax-config">
-      MathJax.Hub.Config({
-        tex2jax: {
-          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
-          processEscapes: true
-        },
-        TeX: {
-          equationNumbers: {
-            autoNumber: "AMS",
-            useLabelIds: true
+        MathJax.Hub.Config({
+          tex2jax: {
+            inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+            displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+            processEscapes: true
+          },
+          TeX: {
+            equationNumbers: {
+              autoNumber: "AMS",
+              useLabelIds: true
+            }
+          },
+          "HTML-CSS": {
+            availableFonts: ["STIX"],
+            linebreaks: { automatic: true },
+            imageFont: null
           }
-        },
-        "HTML-CSS": {
-          availableFonts: ["STIX"],
-          linebreaks: { automatic: true },
-          imageFont: null
-        }
-      });
-    </script>
-    <script type="text/javascript" async
-      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
-    </script>
+        });
+      </script>
+      <script type="text/javascript" async
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+      </script>
     <meta charset="UTF-8">
     <base target="_blank">
     <title> Filtering-based Methods for Visual SLAM</title>
@@ -164,6 +164,123 @@
     
 <h2>Point Feature Extraction and Description</h2>
 SIFT, FAST, BRIEF, ORB, etc.
+
+<h3> Sobel Filter </h3>
+A Sobel filter is a small 3 x 3 convolution kernel that emphasizes changes in a specific direction.
+
+For horizontal changes $I_x$:
+
+
+\begin{equation}
+S_x = \begin{bmatrix}
+    -1 & 0 & 1 \\
+    -2 & 0 & 2 \\
+    -1 & 0 & 1
+\end{bmatrix}
+\end{equation}
+
+For vertical changes $I_y$:
+
+
+\begin{equation}
+S_y = \begin{bmatrix}
+    1 & 2 & 1 \\
+    0 & 0 & 0 \\
+    -1 & -2 & -1
+\end{bmatrix}
+\end{equation}
+Convolve with $S_x$ and $S_y$ to get gradients $I_x$ and $I_y$
+
+<h3 > Harris Corner Detector</h3>
+For each pixel, Harris builds a matrix:
+
+\begin{equation}
+M = \begin{bmatrix}
+    \Sigma \omega I_x^2 &  \Sigma \omega I_x I_y \\
+    \Sigma \omega I_x I_y & \Sigma \omega I_y^2
+\end{bmatrix}
+\end{equation}
+
+\[
+R = \det(M) - k \left( \mathrm{trace}(M) \right)^2
+\]
+
+entries with large R values are corners.
+
+
+
+Let's work throgh an example:
+$$
+I = \begin{bmatrix}
+10 & 10 & 10 & 10 & 10 \\
+10 & 10 & 50 & 50 & 50 \\
+10 & 10 & 200 & 200 & 200 \\
+10 & 10 & 200 & 200 & 200 \\
+10 & 10 & 200 & 200 & 200
+\end{bmatrix}
+$$
+
+
+Let's look at just the center pixel (row 3, col 3 = value 200)
+Its 3x3 neighborhood:
+$$
+\begin{bmatrix}
+10 & 50 & 50 \\
+10 & 200 & 200 \\
+10 & 200 & 200
+\end{bmatrix}
+$$
+
+Multiply element-wise with $S_x$:
+$$
+\begin{bmatrix}
+-1 & 0 & 1 \\
+-2 & 0 & 2 \\
+-1 & 0 & 1
+\end{bmatrix}
+\odot
+\begin{bmatrix}
+10 & 50 & 50 \\
+10 & 200 & 200 \\
+10 & 200 & 200
+\end{bmatrix}
+=
+\begin{bmatrix}
+-10 & 0 & 50 \\
+-20 & 0 & 400 \\
+-10 & 0 & 200
+\end{bmatrix}
+$$
+
+Sum all values:
+$$
+(-10 + 0 + 50) + (-20 + 0 + 400) + (-10 + 0 + 200) = 610
+$$
+
+
+
+
+<h3> Scale Invariant Feature Transform (SIFT)</h3>
+Harris corners work well at one scale, but:
+
+If you zoom in/out → the corner's size changes, Harris might miss it.
+<div class="figure">
+    <img src="figs\img_processing\harris_failure.jpg" alt="Harris corner detection" style="width: 50%; display: block; margin: 0 auto;">
+    <p style="text-align: center; font-style: italic; margin-top: 10px;">Harris corner detection</p>
+</div>
+
+
+If you rotate the image, gradient directions change → Harris doesn't give you a rotation angle.
+
+SIFT fixes this by:
+
+Detecting keypoints across scales (scale-invariant).
+
+Assigning each keypoint a dominant orientation (rotation-invariant).
+
+Describing the neighborhood with a robust feature vector.
+
+
 
 <h3>Feature Matching</h3> 
 Brute-force matching, FLANN, RANSAC, etc.
