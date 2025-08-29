@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,400,900">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:300,400,700">
+    <link rel="stylesheet" href="../../latex.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          processEscapes: true
+        },
+        TeX: {
+          equationNumbers: {
+            autoNumber: "AMS",
+            useLabelIds: true
+          }
+        },
+        "HTML-CSS": {
+          availableFonts: ["STIX"],
+          linebreaks: { automatic: true },
+          imageFont: null
+        }
+      });
+    </script>
+    <script type="text/javascript" async
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+    </script>
+    <meta charset="UTF-8">
+    <base target="_blank">
+    <title>Feature-based Visual Odometry</title>
+    <style>
+        body {
+            font-family: 'Lato', 'Google Sans', sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px 40px;
+            font-size: 20px;
+            counter-reset: figure-counter;
+            text-align: justify;
+        }
+        h1 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            text-align: center;
+            margin-bottom: 2em;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.8em;
+            margin-top: 1.5em;
+        }
+        h3 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.4em;
+            margin-top: 1.2em;
+        }
+        .figure {
+            text-align: center;
+            margin: 30px 0;
+            width: 100%;
+            counter-increment: figure-counter;
+        }
+        .figure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .figure-caption {
+            font-style: italic;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .figure-caption::before {
+            content: "Figure " counter(figure-counter) ": ";
+            font-weight: bold;
+            font-style: normal;
+        }
+        .subfigure-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 20px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .subfigure {
+            flex: 0 1 600px;
+            text-align: center;
+        }
+        .subfigure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            min-width: 400px;
+        }
+        .subfigure .figure-caption {
+            font-style: italic;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .subfigure .figure-caption::before {
+            content: none;
+        }
+        .MathJax {
+            font-size: 1.1em !important;
+        }
+        .MathJax_Display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin: 1em 0;
+        }
+        .equation-container {
+            display: table;
+            width: 100%;
+            margin: 1.5em 0;
+        }
+        .equation-content {
+            display: table-cell;
+            width: 100%;
+        }
+        .figure-label::before {
+            content: "Figure " counter(figure-counter) ":";
+            font-weight: bold;
+            margin-right: 0.5em;
+        }
+        /* MathJax display styles */
+        .MJXc-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .MJXc-display::-webkit-scrollbar {
+            width: 5px;
+            height: 2px;
+        }
+        .MJXc-display::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .MJXc-display::-webkit-scrollbar-thumb {
+            background: #ddd;
+            visibility:hidden;
+        }
+        .MJXc-display:hover::-webkit-scrollbar-thumb {
+            visibility:visible;
+        }
+    </style>
+</head>
+<body>
+<h1>Feature-based Visual Odometry</h1>
+
+<h2>Two view geometry: 2D-2D correspondences</h2>
+In this section we first talk about the very fundamental of geometric vision used in feature-based visual odometry, that is two view geometry, which is used to solve motion from the 2D-2D image point correspondences
+
+<h3>Epipolar constraints</h3>
+<h4>Epipolar line</h4>
+The epipolar line is the $\textit{projection}$ of the $\textit{ray}$ that passes through the current image point $\mathbf{x}_1$ and the current optical center 1 $\mathbf{C}_1$ to another image plane.
+And at the same time, the all possible 3D points $\mathbf{X}_w$ that might project to $\mathbf{x}_1$ should all lie on this ray. And all correspondences in camera 2 should lie on the epipolar line.
+Here is an illustration of the epipolar line.
+
+<div class="figure">
+    <img src="figs/feature_vo/epipolar_line.png" alt="Illustration of Epipolar Line" style="width: 65%;">
+    <div class="figure-caption">Illustration of the epipolar line.</div>
+</div>
+
+<h4>Epipoles</h4>
+Another concept we need to introduce is the epipole. Epipole can be defined by in two ways:
+1. The intersection points of the ray which connects two optical centers with the two image planes. In this case, the epipole in one image plane happens to be the projection of another optical center.
+2. This also happens to be the intersection point of all epipolar lines in one image plane.
+
+The following figure shows the epipole in two images.
+<div class="figure">
+    <img src="figs/feature_vo/epipole.png" alt="Illustration of Epipole" style="width: 65%;">
+    <div class="figure-caption">Illustration of the epipoles.</div>
+</div>
+
+
+<h3>The fundamental matrix and the essential matrix</h3>
+<h4>Algebraic perspective</h4>
+Given two correpondence points $\mathbf{x}_1$ and $\mathbf{x}_2$ in two images. They represent two projections of the same 3D point $\mathbf{X}_w$, and the two cameras are connected by a rigid body motion with rotation $\mathbf{R}$ and translation $\mathbf{t}$.
+
+\begin{equation}
+\tilde{\mathbf{x}_1} =  \mathbf{K}_1[\mathbf{I}, \mathbf{0}]\tilde{\mathbf{X}}_w
+\end{equation}
+
+\begin{equation}
+\tilde{\mathbf{x}_2} = \mathbf{K}_2[\mathbf{R}, \mathbf{t}]\tilde{\mathbf{X}}_w
+\end{equation}
+
+We can then represent the 3D point $\tilde{\mathbf{X}}_w$ in two camera coordinate frames $\mathcal{F}_{c1}$ and $\mathcal{F}_{c2}$, which are are $\tilde{\mathbf{X}}_{c1}$ and $\tilde{\mathbf{X}}_{c2}$, thus we have, with slight abuse of notation by removing $\tilde{.}$ symbol to represent the homogeneous coordinates.
+\begin{equation}
+\mathbf{X}_c = [\mathbf{I}, \mathbf{0}]\mathbf{X}_w = \mathbf{X}_w
+\end{equation}
+
+and 
+\begin{equation}
+\mathbf{X}_{c2} = [\mathbf{R}, \mathbf{t}]\mathbf{X}_w = [\mathbf{R}, \mathbf{t}]\mathbf{X}_c
+\end{equation}
+
+So we have
+\begin{equation}
+    \mathbf{X}_{c2} = \mathbf{R}\mathbf{X}_{c1} + \mathbf{t}
+    \label{eq:Xc2_Xc1_motion}
+\end{equation}
+
+This equation connects 3D corespondences $\mathbf{X}_{c1}$ and $\mathbf{X}_{c2}$ and their relative motion $\mathbf{R}$ and $\mathbf{t}$.
+
+we then apply a small trick to the above equation, which is to cross product the left and right side of the equation with translation vector $\mathbf{t}$.
+\begin{equation}
+\mathbf{t} \times \mathbf{X}_{c2} = \mathbf{t} \times (\mathbf{R}\mathbf{X}_{c1}) + \mathbf{t} \times \mathbf{t}
+\end{equation}
+
+A basic property of cross product is that,
+\begin{equation}
+\mathbf{a} \times \mathbf{a} = ||\mathbf{a}|| ||\mathbf{a}|| \sin(0) = \mathbf{0}
+\end{equation}
+
+so we have,
+\begin{equation}
+\mathbf{t} \times \mathbf{X}_{c2} = \mathbf{t} \times (\mathbf{R}\mathbf{X}_{c1})
+\end{equation}
+
+Rewrite the cross product in matrix form,
+\begin{equation}
+[\mathbf{t}_\times] \mathbf{X}_{c2} = [\mathbf{t}_\times] \mathbf{R}\mathbf{X}_{c1}
+\end{equation}
+
+multiply $\mathbf{X}_{c2}^\top$ on both sides,
+\begin{equation}
+\mathbf{X}_{c2}^\top [\mathbf{t}_\times] \mathbf{X}_{c2} = \mathbf{X}_{c2}^\top [\mathbf{t}_\times]  \mathbf{R}\mathbf{X}_{c1}
+\end{equation}
+
+the cross product of $[\mathbf{t}_\times] \mathbf{X}_{c2}$ is perpendicular to both $\mathbf{t}$ and $\mathbf{X}_{c2}$, thus the dot product of $\mathbf{X}_{c2}^\top$ and $[\mathbf{t}_\times]\mathbf{X}_{c1}$ is zero, which gives us,
+\begin{equation}
+\mathbf{X}_{c2}^\top [\mathbf{t}_\times] \mathbf{X}_{c2} = 0
+\end{equation}
+
+Then we have,
+\begin{equation}
+\mathbf{X}_{c2}^\top [\mathbf{t}_\times]  \mathbf{R}\mathbf{X}_{c1} = 0
+\label{eq:Xc2_Xc1_motion_dot}
+\end{equation}
+
+At this point we reach to a relationship between 3D corespondences $\mathbf{X}_{c1}$ and $\mathbf{X}_{c2}$ in camera frame and their relative motion $\mathbf{R}$ and $\mathbf{t}$.
+
+What we will do is to connect up the 2D corespondences $\mathbf{x}_1$ and $\mathbf{x}_2$ in image plane with the relative camera motion $\mathbf{R}$ and $\mathbf{t}$. But at first we will have to bring camera intrinsics into the picture. <br>
+
+Pinhole projection model gives us,
+\begin{equation}
+\mathbf{x}_1 = \mathbf{K}_1 \mathbf{X}_{c1}
+\end{equation}
+
+\begin{equation}
+\mathbf{x}_2 = \mathbf{K}_2 \mathbf{X}_{c2}
+\end{equation}
+
+substitute back to equation \ref{eq:Xc2_Xc1_motion_dot}, we have,
+\begin{equation}
+{(\mathbf{K}_2^{-1} \mathbf{x}_2)}^\top [\mathbf{t}_\times] \mathbf{R} (\mathbf{K}_1^{-1} \mathbf{x}_1) = 0
+\end{equation}
+
+hence,
+\begin{equation}
+{\mathbf{x}_2}^\top {({\mathbf{K}_2}^{-1})}^\top [\mathbf{t}_\times] \mathbf{R} {\mathbf{K}_1}^{-1} \mathbf{x}_1 = 0
+\end{equation}
+
+we define $\mathbf{F}$ as the $\textbf{fundamental matrix}$:
+\begin{equation}
+\mathbf{F} = {(\mathbf{K}_2^{-1})}^\top [\mathbf{t}_\times] \mathbf{R} \mathbf{K}_1^{-1}
+\end{equation}
+
+and define $\mathbf{E}$ as the $\textbf{essential matrix}$
+\begin{equation}
+\mathbf{E} = [\mathbf{t}_\times] \mathbf{R}
+\end{equation}
+
+so we finally reach to the desired relationship between 2D corespondences $\mathbf{x}_1$ and $\mathbf{x}_2$ and the camera relative motion $\mathbf{R}$ and $\mathbf{t}$,
+\begin{equation}
+{\mathbf{x}_2}^\top \mathbf{F} \mathbf{x}_1 = 0
+\end{equation}
+
+The relationships between $\mathbf{E}$ and $\mathbf{F}$ are obvious,
+\begin{equation}
+\mathbf{F} = {(\mathbf{K}_2^{-1})}^\top \mathbf{E} \mathbf{K}_1^{-1}
+\end{equation}
+
+\begin{equation}
+\mathbf{E} = \mathbf{K}_2^\top \mathbf{F} \mathbf{K}_1
+\end{equation}
+
+<h4>Geometric perspective</h4>
+Now we explain the geometric meaning of $\mathbf{F}$ and connect it up with the epipolar constraints we introduced in the previous section.
+
+The algebraic representation of epipolar lines in two image planes are actually,
+\begin{equation}
+    \mathbf{l}_2 = \mathbf{F} \mathbf{x}_1 \text{ and } \mathbf{l}_1 = \mathbf{F}^\top \mathbf{x}_2
+\end{equation}
+
+Next we will show why this is the case. <br>
+
+Substitute the epipolar line equation back to the defination of $\mathbf{F}$, we have,
+\begin{equation}
+    \mathbf{x}_2^\top \mathbf{l}_2 = 0
+\end{equation}
+
+Recall the defination of a lone function
+\begin{equation}
+    \mathbf{x}^\top \mathbf{l} = ax_2 + by_2 + c = 0
+\end{equation}
+where $a$, $b$ and $c$ are the coefficients of the line $\mathbf{l}$. <br>
+
+So this literally means image point $\mathbf{x}_2 = [x_2, y_2, 1]^\top$ lies on the epipolar line $\mathbf{l}_2$. <br>
+
+epipole $\mathbf{e}'$ is also on $\mathbf{l}'$, so we have 
+\begin{equation}
+    \mathbf{e}_2^\top \mathbf{l}_2 = 0
+\end{equation}
+
+\begin{equation}
+    \mathbf{e}_2^\top \mathbf{F} \mathbf{x}_1 = 0
+\end{equation}
+
+\begin{equation}
+    \mathbf{e}_2^\top \mathbf{F} = 0
+\end{equation}
+
+take the transpose,
+\begin{equation}
+    \mathbf{F}^\top \mathbf{e}_2 = 0
+\end{equation}
+
+<h3>8-point algorithm</h3>
+Next we introduce a pratical algorithm to solve the essential matrix
+
+
+<h3>Solve motion from essential matrix</h3>
+
+
+
+<h3>Homography</h3>
+For planar 3D points and motion with pure translation, essential matrix and fundamental matrix will fail. Thus we need homography denoted by $\mathbf{H}$. 
+
+Given two points in image coordinate system from two views, we have
+\begin{equation}
+    \mathbf{x}_{im2} = \mathbf{H} \mathbf{x}_{im1}
+\end{equation}
+
+in Homogeneous coordinates,
+\begin{equation}
+\begin{bmatrix}
+x_{im2} \\
+y_{im2} \\
+1
+\end{bmatrix} 
+=
+\begin{bmatrix} 
+h_{11} & h_{12} & h_{13} \\
+h_{21} & h_{22} & h_{23} \\
+h_{31} & h_{32} & h_{33} \\
+\end{bmatrix} 
+\begin{bmatrix}
+x_{im1} \\
+y_{im1} \\
+1
+\end{bmatrix} 
+\end{equation}
