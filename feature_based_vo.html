@@ -161,8 +161,8 @@
 <body>
 <h1>Feature-based Visual Odometry</h1>
 
-<h2>Two view geometry: 2D-2D correspondences</h2>
-In this section we first talk about the very fundamental of geometric vision used in feature-based visual odometry, that is two view geometry, which is used to solve motion from the 2D-2D image point correspondences
+<h2>Two view geometry: Motion from 2D-2D correspondences</h2>
+In this section we first talk about the very fundamental of geometric vision used in feature-based monocular visual odometry, that is two view geometry, which is used to solve motion from the 2D-2D image point correspondences.
 
 <h3>Epipolar constraints</h3>
 <h4>Epipolar line</h4>
@@ -185,7 +185,6 @@ The following figure shows the epipole in two images.
     <img src="figs/feature_vo/epipole.png" alt="Illustration of Epipole" style="width: 65%;">
     <div class="figure-caption">Illustration of the epipoles.</div>
 </div>
-
 
 <h3>The fundamental matrix and the essential matrix</h3>
 <h4>Algebraic perspective</h4>
@@ -273,7 +272,7 @@ substitute back to equation \ref{eq:Xc2_Xc1_motion_dot}, we have,
 
 hence,
 \begin{equation}
-{\mathbf{x}_2}^\top {({\mathbf{K}_2}^{-1})}^\top [\mathbf{t}_\times] \mathbf{R} {\mathbf{K}_1}^{-1} \mathbf{x}_1 = 0
+    {\mathbf{x}_2}^\top {({\mathbf{K}_2}^{-1})}^\top [\mathbf{t}_\times] \mathbf{R} {\mathbf{K}_1}^{-1} \mathbf{x}_1 = 0
 \end{equation}
 
 we define $\mathbf{F}$ as the $\textbf{fundamental matrix}$:
@@ -299,6 +298,15 @@ The relationships between $\mathbf{E}$ and $\mathbf{F}$ are obvious,
 \begin{equation}
 \mathbf{E} = \mathbf{K}_2^\top \mathbf{F} \mathbf{K}_1
 \end{equation}
+
+An important property of $\mathbf{F}$ and $\mathbf{E}$ is that, they are only defined up to a scale, which means,
+\begin{equation}
+\begin{aligned}
+    {\mathbf{x}_2}^\top \mathbf{F} \mathbf{x}_1 = {\mathbf{x}_2}^\top (\alpha \mathbf{F}) \mathbf{x}_1 = 0
+\end{aligned}
+\end{equation}
+
+where $\alpha$ is a arbitrary scalar. This reduces the DoF of $\mathbf{F}$ from 9 to 8. 
 
 <h4>Geometric perspective</h4>
 Now we explain the geometric meaning of $\mathbf{F}$ and connect it up with the epipolar constraints we introduced in the previous section.
@@ -332,36 +340,126 @@ epipole $\mathbf{e}'$ is also on $\mathbf{l}'$, so we have
     \mathbf{e}_2^\top \mathbf{F} \mathbf{x}_1 = 0
 \end{equation}
 
+To make the above equation always true, we have to make sure that $\mathbf{e}_2$ is in the null space of $\mathbf{F}$.
 \begin{equation}
     \mathbf{e}_2^\top \mathbf{F} = 0
 \end{equation}
 
-take the transpose,
-\begin{equation}
-    \mathbf{F}^\top \mathbf{e}_2 = 0
-\end{equation}
+A $3 \times 3 $ matrix with a nonzero null space is singular matrix and would not be a full-rank matrix. Thus fundamental matrix (also essential matrix) is a singular matrix, $\det(\mathbf{F}) = 0$. In fact $\mathbf{F}$ is only of rank 2, which further reduce its DoF from 8 to 7.
 
 <h3>8-point algorithm</h3>
-Next we introduce a pratical algorithm to solve the essential matrix
+Next we introduce a pratical algorithm to solve the essential matrix. We would need at least 8 correspondences to solve for $\mathbf{F}$ due to its scale ambiguity. This is where the classic 8-point algorithm comes in. <br>
+If we observe in further, we can find essential matrix $\mathbf{E}$ actually only has 5 DoF. Since $\mathbf{E} = [\mathbf{t}_\times] \mathbf{R}$ depends on $\mathbf{R}$ and $\mathbf{t}$, which only has 3 DoF, respectively. In total this gives us 6, and then we take 1 DoF off due to the scale ambiguity. And in fact, there's also a 5-point algorithm to solve for $\mathbf{E}$ with only 5 correspondences. <br>
+The reason we usually choose not to use 7 correspondences for $\mathbf{F}$, or 5 correspondences for $\mathbf{E}$ is that, usually we have more than 8 correspondences in practice and 8 point algorithm is simple and usually more stable.
 
+And here we will introduce the 8-point algorithm to solve for $\mathbf{F}$. <br>
+
+Write the fundamental matrix in matrix form,
+\begin{equation}
+    \begin{bmatrix}
+        x_1 & y_1 & 1
+        \end{bmatrix}
+        \begin{bmatrix}
+        f_1 & f_2 & f_3 \\
+        f_4 & f_5 & f_6 \\
+        f_7 & f_8 & f_9
+        \end{bmatrix}
+        \begin{bmatrix}
+        x_2 \\ y_2 \\ 1
+    \end{bmatrix}
+    = 0
+\end{equation}
+
+multiply on both sides, we have,
+\begin{equation}
+    x_1 x_2 f_1 + x_1 y_2 f_4 + x_1 f_7 +
+    y_1 x_2 f_2 + y_1 y_2 f_5 + y_1 f_8 +
+    x_2 f_3 + y_2 f_6 + f_9 = 0
+\end{equation}
+
+we then have a general system of linear equations with $m$ correspondences,
+\begin{equation}
+    \begin{bmatrix}
+    x^1_1 x^1_2 & x^1_1 y^1_2 & x^1_1 & y^1_1 x^1_2 & y^1_1 y^1_2 & y^1_1 & x^1_2 & y^1_2 & 1 \\
+    \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots \\
+    x^M_1 x^M_2 & x^M_1 y^M_2 & x^M_1 & y^M_1 x^M_2 & y^M_1 y^M_2 & y^M_1 & x^M_2 & y^M_2 & 1
+    \end{bmatrix}
+    \begin{bmatrix}
+    f_1 \\ f_4 \\ f_7 \\ f_2 \\ f_5 \\ f_8 \\ f_3 \\ f_6 \\ f_9
+    \end{bmatrix}
+    = 0
+\end{equation}
+
+\begin{equation}
+\mathbf{A} \mathbf{f} = 0
+\end{equation}
+
+then we use $m=8$ correspondences to solve for $\mathbf{F}$ with SVD.
+\begin{equation}
+    \mathbf{A} = \mathbf{U}_A \mathbf{S}_A \mathbf{V}_A^\top
+\end{equation}
+The solution of $\mathbf{f}$ is the singular vector corresponding to smallest singular value of matrix $\mathbf{A}$, hence the last column of $\mathbf{V}_A$.
+
+Exactly the same algorithm can be used to solve for $\mathbf{E}$ if we first normalize the correspondences with the camera intrinsics.
 
 <h3>Solve motion from essential matrix</h3>
+Once we find the fundamental matrix $\mathbf{F}$ or essential matrix $\mathbf{E}$, we can solve for the relative motion $\mathbf{R}$ and $\mathbf{t}$ by taking SVD of $\mathbf{E}$.
 
+\begin{equation}
+    \mathbf{E} = \mathbf{U} \mathbf{S} \mathbf{V}^\top
+\end{equation}
+
+Define
+\begin{equation}
+\mathbf{W} = 
+\begin{bmatrix}
+0 & -1 & 0 \\
+1 & 0 & 0 \\
+0 & 0 & 1
+\end{bmatrix}, 
+\qquad
+\mathbf{W}^\top = 
+\begin{bmatrix}
+0 & 1 & 0 \\
+-1 & 0 & 0 \\
+0 & 0 & 1
+\end{bmatrix}.
+\end{equation}
+These matrices correspond to rotations $\mathbf{R}_z(\pm \tfrac{\pi}{2})$ about the $z$-axis, they are introduced so that the SVD factors of E can be turned into a proper rotation $\mathbf{R}$ and a skew-symmetric $[\mathbf{t}_\times]$ matrix.
+
+Then the four possible decompositions are:
+\begin{equation}
+\mathbf{R}_1 = \mathbf{U} \mathbf{W} \mathbf{V}^\top, \quad \mathbf{R}_2 = \mathbf{U} \mathbf{W}^\top \mathbf{V}^\top,
+\end{equation}
+\begin{equation}
+\hat{\mathbf{t}}_{1} = \mathbf{U}\,\mathbf{W} \boldsymbol{\Sigma}\,\mathbf{U}^{\top}, 
+\qquad
+\hat{\mathbf{t}}_{2} = \mathbf{U}\,\mathbf{W}^\top \boldsymbol{\Sigma}\,\mathbf{U}^{\top}
+\end{equation}
+where $\mathbf{u}_3$ is the third column of $\mathbf{U}$, which corresponds to the largest singular value of $\mathbf{E}$.
+
+The decomposition yields four candidates $(\mathbf{R}, \mathbf{t})$. To disambiguate, we need to triangulate points using the two camera poses and select the solution where reconstructed 3D points have positive depth in both cameras. Triangulation will be introcuce in the next section.
+
+There are 4 possible solutions and here is an illustration.
+<div class="figure">
+    <img src="figs/feature_vo/4_fold_ambiguity.png" alt="Illustration of 4 possible solutions of solving the essential matrix" style="width: 65%;">
+    <div class="figure-caption">Illustration of 4 possible solutions of solving the essential matrix.</div>
+</div>
 
 
 <h3>Homography</h3>
-For planar 3D points and motion with pure translation, essential matrix and fundamental matrix will fail. Thus we need homography denoted by $\mathbf{H}$. 
+<!-- For planar 3D points and motion with pure translation, essential matrix and fundamental matrix will fail. Thus we need homography denoted by $\mathbf{H}$. 
 
 Given two points in image coordinate system from two views, we have
 \begin{equation}
-    \mathbf{x}_{im2} = \mathbf{H} \mathbf{x}_{im1}
+    \mathbf{x}_{2} = \mathbf{H} \mathbf{x}_{1}
 \end{equation}
 
 in Homogeneous coordinates,
 \begin{equation}
 \begin{bmatrix}
-x_{im2} \\
-y_{im2} \\
+x_{2} \\
+y_{2} \\
 1
 \end{bmatrix} 
 =
@@ -371,8 +469,10 @@ h_{21} & h_{22} & h_{23} \\
 h_{31} & h_{32} & h_{33} \\
 \end{bmatrix} 
 \begin{bmatrix}
-x_{im1} \\
-y_{im1} \\
+x_{1} \\
+y_{1} \\
 1
 \end{bmatrix} 
-\end{equation}
+\end{equation} -->
+
+<h3>PnP: Motion from 2D-3D correspondences</h3>
