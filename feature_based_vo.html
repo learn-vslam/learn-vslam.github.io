@@ -172,7 +172,7 @@ Here is an illustration of the epipolar line.
 
 <div class="figure">
     <img src="figs/feature_vo/epipolar_line.png" alt="Illustration of Epipolar Line" style="width: 65%;">
-    <div class="figure-caption">Illustration of the epipolar line.</div>
+    <div class="figure-caption">Illustration of the epipolar line. Figure from $\textit{Computer Vision 1st Edition, by Simon J. D. Prince}$</div>
 </div>
 
 <h4>Epipoles</h4>
@@ -183,7 +183,7 @@ Another concept we need to introduce is the epipole. Epipole can be defined by i
 The following figure shows the epipole in two images.
 <div class="figure">
     <img src="figs/feature_vo/epipole.png" alt="Illustration of Epipole" style="width: 65%;">
-    <div class="figure-caption">Illustration of the epipoles.</div>
+    <div class="figure-caption">Illustration of the epipoles. Figure from $\textit{Computer Vision 1st Edition, by Simon J. D. Prince}$ </div>
 </div>
 
 <h3>The fundamental matrix and the essential matrix</h3>
@@ -197,6 +197,9 @@ Given two correpondence points $\mathbf{x}_1$ and $\mathbf{x}_2$ in two images. 
 \begin{equation}
 \tilde{\mathbf{x}_2} = \mathbf{K}_2[\mathbf{R}, \mathbf{t}]\tilde{\mathbf{X}}_w
 \end{equation}
+
+<br>
+Note here $[\mathbf{R}, \mathbf{t}]$ denotes the transformation of camera 1 seen in camera 2's frame, or $\mathbf{T}_{21}$. <br>
 
 We can then represent the 3D point $\tilde{\mathbf{X}}_w$ in two camera coordinate frames $\mathcal{F}_{c1}$ and $\mathcal{F}_{c2}$, which are are $\tilde{\mathbf{X}}_{c1}$ and $\tilde{\mathbf{X}}_{c2}$, thus we have, with slight abuse of notation by removing $\tilde{.}$ symbol to represent the homogeneous coordinates.
 \begin{equation}
@@ -340,12 +343,28 @@ epipole $\mathbf{e}'$ is also on $\mathbf{l}'$, so we have
     \mathbf{e}_2^\top \mathbf{F} \mathbf{x}_1 = 0
 \end{equation}
 
-To make the above equation always true, we have to make sure that $\mathbf{e}_2$ is in the null space of $\mathbf{F}$.
+To make the above equation always true, we have to make sure that $\mathbf{e}_2$ is in the $\textbf{left nullspace}$ of $\mathbf{F}$.
 \begin{equation}
     \mathbf{e}_2^\top \mathbf{F} = 0
 \end{equation}
 
-A $3 \times 3 $ matrix with a nonzero null space is singular matrix and would not be a full-rank matrix. Thus fundamental matrix (also essential matrix) is a singular matrix, $\det(\mathbf{F}) = 0$. In fact $\mathbf{F}$ is only of rank 2, which further reduce its DoF from 8 to 7.
+We do no want the above epipole solution to be always $\mathbf{0}$, which is a trivial solution, or a trivial nullspace of $\mathbf{F}$. Thus we need to make sure the nullspace of $\mathbf{F}$ is not trivial. A matrix with a non-trival nullspace is a singular matrix and is not a full-rank matrix. Thus fundamental matrix (also essential matrix) is a singular matrix, $\det(\mathbf{F}) = 0$. In fact $\mathbf{F}$ is only of rank 2, which further reduce its DoF from 8 to 7. <br>
+
+Also recall the defination of null space for a matrix $\mathbf{A}$: <br>
+Let $\mathbf{A} \in \mathbb{R}^{m\times n}$.
+
+The right nullspace is,
+\begin{equation}
+\mathcal{N}_R(\mathbf{A}) 
+= \{\, \mathbf{x} \in \mathbb{R}^n \;\mid\; \mathbf{A}\mathbf{x} = \mathbf{0} \,\}.
+\end{equation}
+These are the $\textit{column vectors that get mapped to zero by $\mathbf{A}$}$. <br>
+
+left nullspace is,
+\begin{equation}
+\mathcal{N}_L(\mathbf{A}) 
+= \{\, \mathbf{y} \in \mathbb{R}^m \;\mid\; \mathbf{y}^\top \mathbf{A} = \mathbf{0}^\top \,\}.
+\end{equation}
 
 <h3>8-point algorithm</h3>
 Next we introduce a pratical algorithm to solve the essential matrix. We would need at least 8 correspondences to solve for $\mathbf{F}$ due to its scale ambiguity. This is where the classic 8-point algorithm comes in. <br>
@@ -403,48 +422,116 @@ The solution of $\mathbf{f}$ is the singular vector corresponding to smallest si
 Exactly the same algorithm can be used to solve for $\mathbf{E}$ if we first normalize the correspondences with the camera intrinsics.
 
 <h3>Solve motion from essential matrix</h3>
-Once we find the fundamental matrix $\mathbf{F}$ or essential matrix $\mathbf{E}$, we can solve for the relative motion $\mathbf{R}$ and $\mathbf{t}$ by taking SVD of $\mathbf{E}$.
+It is obvious that the trasnlation vector $\mathbf{t}$ is hidden in the essential matrix $\mathbf{E}$. <br>
 
+In fact,
 \begin{equation}
-    \mathbf{E} = \mathbf{U} \mathbf{S} \mathbf{V}^\top
+    [\mathbf{t}]_\times \mathbf{R} (-\mathbf{R}^\top \mathbf{t}) = - [\mathbf{t}]_\times \mathbf{t} = \mathbf{0}
 \end{equation}
 
-Define
+This means $ -\mathbf{R}^\top \mathbf{t} $ is in the right nullspace of $\mathbf{E}$. <br>
+
 \begin{equation}
-\mathbf{W} = 
-\begin{bmatrix}
-0 & -1 & 0 \\
-1 & 0 & 0 \\
-0 & 0 & 1
-\end{bmatrix}, 
+\mathbf{E}^\top \mathbf{t} = \mathbf{R}^\top [\mathbf{t}]_\times^\top \mathbf{t} =  \mathbf{R}^\top (- [\mathbf{t}]_\times) \mathbf{t} = \mathbf{0}
+\end{equation}
+
+This means $\mathbf{t}$ is in the left nullspace of $\mathbf{E}$. <br>
+
+Let's pause for a moment and think what $-\mathbf{R}^\top \mathbf{t}$ and $\mathbf{t}$ is. By definition, $\mathbf{t}$ is the camera 1's center seen in camera 2's frame.
+The transformation which denotes camera 1's frame seen in camera 2's frame is $[\mathbf{R}, \mathbf{t}]$. Inversely, the transformation which denotes camera 2's frame seen in camera 1's frame is $[\mathbf{R}^\top, -\mathbf{R}^\top \mathbf{t}]$. Thus the left and right nullspaces of $\mathbf{E}$ happens to be the translation seen each of the camera frames. <br>
+
+If we apply camera intrinsics $\mathbf{K}_2$, epipole $\mathbf{e}_2$, which is the projection of camera 1's center in camera 2's image plane, is simply 
+\begin{equation}
+\mathbf{e}_2 = \mathbf{K}_2 \mathbf{t}
+\end{equation}
+
+From the previous conclusion we know $\mathbf{e}_2$ is in the left nullspace of $\mathbf{F}$, and we just concluded that $\mathbf{t}$ is in the left nullspace of $\mathbf{E}$. Here it's all connected again. Trivially we can also verify the case for $\mathbf{e}_1$. <br>
+
+
+The skew matrix $[\mathbf{t}]_\times$ has singular values
+\begin{equation}
+(\,\|\mathbf{t}\|, \; \|\mathbf{t}\|, \; 0 \,),
+\end{equation}
+The SVD of $[\mathbf{t}]_\times$ is,
+\begin{equation}
+    [\mathbf{t}]_\times = \mathbf{U} diag(|||\mathbf{t}||, ||\mathbf{t}||, 0) \mathbf{Z} \mathbf{U}^\top
+    \quad \text{where} \quad
+    \mathbf{Z} =
+    \begin{bmatrix}
+    0 & 1 & 0 \\
+    -1 & 0 & 0 \\
+    0 & 0 & 1
+    \end{bmatrix}
+\end{equation}
+
+The third column $\mathbf{u}_3$ of $\mathbf{U}$ spans the left nullspace, hence $\mathbf{u}_3 \parallel \mathbf{t}$. <br>
+
+There are two possible solutions for $\mathbf{t}$,
+\begin{equation}
+\mathbf{t}_1 = \mathbf{u}_3
 \qquad
-\mathbf{W}^\top = 
-\begin{bmatrix}
-0 & 1 & 0 \\
+\mathbf{t}_2 = - \mathbf{u}_3
+\end{equation}
+
+Since if the sign of $\mathbf{t}$ is flipped, the sign of $\mathbf{E}$ is also flipped, but the relationship $\mathbf{x}_2^\top \mathbf{E} \mathbf{x}_1 = 0$ still holds. <br>
+
+Substitute the SVD of $[\mathbf{t}]_\times$ back to $\mathbf{E}$, we have,
+\begin{equation}
+\begin{aligned}
+    \mathbf{E} &= \mathbf{U} \mathrm{diag}(||\mathbf{t}||, ||\mathbf{t}||, 0) \mathbf{Z} \mathbf{U}^\top \mathbf{R}
+\end{aligned}
+\end{equation}
+
+set $\mathbf{Z} \mathbf{U}^\top \mathbf{R} = \mathbf{V}^\top$, it then gives the SVD form of $\mathbf{E}$. Previous we know the rank of $\mathbf{E}$ is 2, and now we prove that it does have two singular values thus the rank is 2. <br>
+
+The third column $\mathbf{v}_3$ of $\mathbf{V}$ spans the right nullspace of $\mathbf{E}$, hence $\mathbf{v}_3 \parallel - \mathbf{R}^\top \mathbf{t}$. <br>
+
+Then we can solve $\mathbf{R}$ as,
+\begin{equation}
+    \mathbf{R} = \mathbf{U} \mathbf{Z}^+ \mathbf{V}^\top = \mathbf{U} \mathbf{Z}^\top \mathbf{V}^\top
+\end{equation}
+$\mathbf{Z}^+$ is the pseudoinverse of $\mathbf{Z}$ since $\mathbf{Z}$ is a singular matrix and it happens to be $\mathbf{Z}^\top$. <br>
+
+Also, there are two possible solutions for $\mathbf{R}$,
+\begin{equation}
+\mathbf{R}_1 = \mathbf{U} \mathbf{Z} \mathbf{V}^\top, \quad \mathbf{R}_2 = \mathbf{U} \mathbf{Z}^\top \mathbf{V}^\top,
+\end{equation}
+
+Since if $\mathbf{t}$ is flipped, we use $\mathrm{diag}(-||\mathbf{t}||, -||\mathbf{t}||, 0)$ instead of $\mathrm{diag}(||\mathbf{t}||, ||\mathbf{t}||, 0)$, $\mathbf{R} = \mathbf{U} \mathbf{Z} \mathbf{V}^\top$.<br>
+
+
+To conlcusion, we have 4 possible solutions for transformation $[\mathbf{R}, \mathbf{t}]$,
+\begin{equation}
+(\mathbf{R}_1, \mathbf{t}_1), \quad (\mathbf{R}_1, \mathbf{t}_2), \quad (\mathbf{R}_2, \mathbf{t}_1), \quad (\mathbf{R}_2, \mathbf{t}_2)
+\end{equation}
+
+Let's discuss the relationship between the two solutions of $\mathbf{R}$ and $\mathbf{t}$. $\mathbf{t}_1$ and $\mathbf{t}_2$ are just same vectors with opposite directions. While for $\mathbf{R}_1$ and $\mathbf{R}_2$ they have this relationship:
+\begin{equation}
+\mathbf{R}_1 = \mathbf{U} \mathbf{Z} \mathbf{V}^\top = \mathbf{U} \mathbf{Z}^\top \mathbf{V}^\top (\mathbf{V} \mathbf{Z} \mathbf{Z} \mathbf{V}^\top) = \mathbf{R}_2 (\mathbf{V} \mathbf{Z} \mathbf{Z} \mathbf{V}^\top)
+\end{equation}
+
+Here we have a interesting matrix $\mathbf{V} \mathbf{Z} \mathbf{Z} \mathbf{V}^\top$, the inner part of this matrix is,
+\begin{equation}
+\mathbf{Z} \mathbf{Z} = \begin{bmatrix}
 -1 & 0 & 0 \\
+0 & -1 & 0 \\
 0 & 0 & 1
-\end{bmatrix}.
+\end{bmatrix}
 \end{equation}
-These matrices correspond to rotations $\mathbf{R}_z(\pm \tfrac{\pi}{2})$ about the $z$-axis, they are introduced so that the SVD factors of E can be turned into a proper rotation $\mathbf{R}$ and a skew-symmetric $[\mathbf{t}_\times]$ matrix.
+which is a rotation matrix that flips $x$ and $y$ axes, in the computer vision coordiaate convention, this actually is a clockwise rotation of $180$ degrees around the $z$ axis. <br>
 
-Then the four possible decompositions are:
-\begin{equation}
-\mathbf{R}_1 = \mathbf{U} \mathbf{W} \mathbf{V}^\top, \quad \mathbf{R}_2 = \mathbf{U} \mathbf{W}^\top \mathbf{V}^\top,
-\end{equation}
-\begin{equation}
-\hat{\mathbf{t}}_{1} = \mathbf{U}\,\mathbf{W} \boldsymbol{\Sigma}\,\mathbf{U}^{\top}, 
-\qquad
-\hat{\mathbf{t}}_{2} = \mathbf{U}\,\mathbf{W}^\top \boldsymbol{\Sigma}\,\mathbf{U}^{\top}
-\end{equation}
-where $\mathbf{u}_3$ is the third column of $\mathbf{U}$, which corresponds to the largest singular value of $\mathbf{E}$.
-
-The decomposition yields four candidates $(\mathbf{R}, \mathbf{t})$. To disambiguate, we need to triangulate points using the two camera poses and select the solution where reconstructed 3D points have positive depth in both cameras. Triangulation will be introcuce in the next section.
-
-There are 4 possible solutions and here is an illustration.
+So what about $\mathbf{V} \mathbf{Z} \mathbf{Z} \mathbf{V}^\top$? We need to bring another concept called $\textit{conjugated rotation}$. It changes the original rotation axis, which is $z$ axis (last axis) in the local camera frame, for $\mathbf{Z} \mathbf{Z}$, to the $z$-alike axis of $\mathbf{V}$, hence the axis represented by the last column of $\mathbf{V}$. What is the last column of $\mathbf{V}$? It represents the right nullspace of essential matrix $\mathbf{E}$, which is parallel to $-\mathbf{R}^\top \mathbf{t}$, camera 2's center seen in camera 1's frame. This is the baseline direction connecting two camera centers. Thus $\mathbf{V} \mathbf{Z} \mathbf{Z} \mathbf{V}^\top$ rotates camera by 180 degrees around the baseline direction. That's why in the figure below, the two solutions of $\mathbf{R}$ flipped around the baseline direction.<br>
 <div class="figure">
     <img src="figs/feature_vo/4_fold_ambiguity.png" alt="Illustration of 4 possible solutions of solving the essential matrix" style="width: 65%;">
-    <div class="figure-caption">Illustration of 4 possible solutions of solving the essential matrix.</div>
+    <div class="figure-caption">Illustration of 4 possible solutions of solving the essential matrix. (figure from $\textit{Multiview Geometry in Computer Vision, by Richard Hartley and Andrew Zisserman}$) </div>
 </div>
+
+
+
+To disambiguate, we need to use the $\textit{cheirality test}$, which is to triangulate points using the two camera poses and select the solution where reconstructed 3D points have positive depth in both cameras. Triangulation will be introcuce in the next section.
+<br>
+
+
 
 
 <h3>Homography</h3>
@@ -476,3 +563,10 @@ y_{1} \\
 \end{equation} -->
 
 <h3>PnP: Motion from 2D-3D correspondences</h3>
+
+<h2>References</h2>
+<ol>
+    <li>Visual SLAM: From Theory to Practice, by Xiang Gao, Tao Zhang, Qinrui Yan and Yi Liu</li>
+    <li>Multiview Geometry in Computer Vision, by Richard Hartley and Andrew Zisserman</li>
+    <li>Computer Vision 1st Edition, by Simon J. D. Prince</li>
+</ol>
