@@ -534,33 +534,80 @@ To disambiguate, we need to use the $\textit{cheirality test}$, which is to tria
 
 
 
-<h3>Homography</h3>
-<!-- For planar 3D points and motion with pure translation, essential matrix and fundamental matrix will fail. Thus we need homography denoted by $\mathbf{H}$. 
+<h3>Planar Homography</h3>
+When the 3D landmark points are in a plane, we can use homography to describe the relationship between 2D correspondences in two image planes.
+<div class="figure">
+    <img src="figs/feature_vo/homography.png" alt="Illustration of 4 possible solutions of solving the essential matrix" style="width: 65%;">
+    <div class="figure-caption">Illustration of homography. (figure from $\textit{Multiview Geometry in Computer Vision, by Richard Hartley and Andrew Zisserman}$) </div>
+</div>
 
-Given two points in image coordinate system from two views, we have
+\begin{equation}
+\mathbf{n}^{\top}\mathbf{X} + d = 0.
+\end{equation}
+
+where $\mathbf{n}$ is the normal vector of the plane and $d$ is the distance from the origin to the plane.
+
+Then we have,
+\begin{equation}
+-\,\frac{\mathbf{n}^{\top}\mathbf{X}}{d} = 1.
+\end{equation}
+
+Simply apply projection model, we have,
+\begin{equation}
+\begin{aligned}
+\mathbf{x}_2 \ &= \mathbf{K}\!\left(\mathbf{R}\mathbf{X} + \mathbf{t}\right) \\
+&= \mathbf{K}\!\left(\mathbf{R}\mathbf{X} + \mathbf{t}\cdot\left(-\,\frac{\mathbf{n}^{\top}\mathbf{X}}{d}\right)\right) \\
+&= \mathbf{K}\!\left(\mathbf{R} - \frac{\mathbf{t}\mathbf{n}^{\top}}{d}\right)\mathbf{X} \\
+&= \underbrace{\mathbf{K}\!\left(\mathbf{R} - \frac{\mathbf{t}\mathbf{n}^{\top}}{d}\right)\mathbf{K}^{-1}}_{\mathbf{H}}\ \mathbf{x}_1 .
+\end{aligned}
+\end{equation}
+
+
+which gives the homography matrix $\mathbf{H}$ to connect the two image points. Note that similar to the essential matrix, the homography matrix is also only defined up to a scale.
 \begin{equation}
     \mathbf{x}_{2} = \mathbf{H} \mathbf{x}_{1}
 \end{equation}
 
-in Homogeneous coordinates,
+The homography matrix can be computed from 4 or more correspondences, with the same method as the essential matrix.
+
+Next we talk about how to recover the motion from the homography matrix. The normalized homography matrix is,
 \begin{equation}
-\begin{bmatrix}
-x_{2} \\
-y_{2} \\
-1
-\end{bmatrix} 
-=
-\begin{bmatrix} 
-h_{11} & h_{12} & h_{13} \\
-h_{21} & h_{22} & h_{23} \\
-h_{31} & h_{32} & h_{33} \\
-\end{bmatrix} 
-\begin{bmatrix}
-x_{1} \\
-y_{1} \\
-1
-\end{bmatrix} 
-\end{equation} -->
+\hat{\mathbf{H}} = \mathbf{K}^{-1} \mathbf{H} \mathbf{K} = [\hat{\mathbf{h}}_{1}, \hat{\mathbf{h}}_{2}, \hat{\mathbf{h}}_{3}]
+\end{equation}
+
+Compute scale factors:
+\begin{equation}
+\lambda_1 = \frac{1}{\|\mathbf{h}_1\|}, \qquad
+\lambda_2 = \frac{1}{\|\mathbf{h}_2\|}, \qquad
+\lambda = \tfrac{1}{2}(\lambda_1 + \lambda_2).
+\end{equation}
+
+Form raw basis vectors:
+\begin{equation}
+\tilde{\mathbf{r}}_1 = \lambda \mathbf{h}_1, \qquad
+\tilde{\mathbf{r}}_2 = \lambda \mathbf{h}_2.
+\end{equation}
+
+Enforce orthonormality:
+\begin{equation}
+\tilde{\mathbf{r}}_3 = \tilde{\mathbf{r}}_1 \times \tilde{\mathbf{r}}_2, \qquad
+\tilde{\mathbf{R}} = \begin{bmatrix} \tilde{\mathbf{r}}_1 & \tilde{\mathbf{r}}_2 & \tilde{\mathbf{r}}_3 \end{bmatrix}.
+\end{equation}
+
+Project onto $SO(3)$:
+\begin{equation}
+\tilde{\mathbf{R}} = \mathbf{U}\mathbf{\Sigma}\mathbf{V}^\top, \qquad
+\mathbf{R} = \mathbf{U}\mathbf{V}^\top.
+\end{equation}
+If $\det(\mathbf{R}) < 0$, set $\mathbf{R} \leftarrow -\mathbf{R},\; \tilde{\mathbf{t}} \leftarrow -\tilde{\mathbf{t}}$.
+
+The translation direction is recovered up to scale:
+\begin{equation}
+\frac{\mathbf{t}}{d} = \lambda \mathbf{h}_3.
+\end{equation}
+
+
+<h3>Triangulation</h3>
 
 <h3>PnP: Motion from 2D-3D correspondences</h3>
 
