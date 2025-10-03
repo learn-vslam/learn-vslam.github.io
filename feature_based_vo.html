@@ -562,7 +562,6 @@ Simply apply projection model, we have,
 \end{aligned}
 \end{equation}
 
-
 which gives the homography matrix $\mathbf{H}$ to connect the two image points. Note that similar to the essential matrix, the homography matrix is also only defined up to a scale.
 \begin{equation}
     \mathbf{x}_{2} = \mathbf{H} \mathbf{x}_{1}
@@ -570,46 +569,38 @@ which gives the homography matrix $\mathbf{H}$ to connect the two image points. 
 
 The homography matrix can be computed from 4 or more correspondences, with the same method as the essential matrix.
 
-Next we talk about how to recover the motion from the homography matrix. The normalized homography matrix is,
+Next we talk about how to recover the motion from the homography matrix. The normalized homography matrix is defined as,
 \begin{equation}
 \hat{\mathbf{H}} = \mathbf{K}^{-1} \mathbf{H} \mathbf{K} = [\hat{\mathbf{h}}_{1}, \hat{\mathbf{h}}_{2}, \hat{\mathbf{h}}_{3}]
 \end{equation}
 
-Compute scale factors:
+A common trick is to assume that the the world frame align with the plane so that the Z axis of the 3D point on that plane is 0, then we have, hence $Z=0$. Then the projection can be written as,
+
 \begin{equation}
-\lambda_1 = \frac{1}{\|\mathbf{h}_1\|}, \qquad
-\lambda_2 = \frac{1}{\|\mathbf{h}_2\|}, \qquad
-\lambda = \tfrac{1}{2}(\lambda_1 + \lambda_2).
+\begin{aligned}
+    \mathbf{x} &= \mathbf{K}\,[\mathbf{r}_1 \ \mathbf{r}_2 \ \mathbf{r}_3 \ \mathbf{t}]
+    \begin{bmatrix}X \\ Y \\ 0 \\ 1\end{bmatrix} \\
+    &= \mathbf{K}\,[\mathbf{r}_1 \ \mathbf{r}_2 \ \mathbf{t}]
+    \begin{bmatrix}X \\ Y \\ 1\end{bmatrix} \\
+    &= \mathbf{H}  \begin{bmatrix}X \\ Y \\ 1\end{bmatrix} 
+\end{aligned}
 \end{equation}
 
-Form raw basis vectors:
+The normalized homography in this case is:
+$
+\mathbf{\hat H} = \mathbf{K}^{-1}\mathbf{H} 
+$,
+
+The first two columns of $\mathbf{R}$ and $\mathbf{t}$ can be directly obtained from $\mathbf{\hat H}$. But the third column of $\mathbf{R}$ is not directly obtained from $\mathbf{\hat H}$, and we ultilize the orthogonality of $\mathbf{R}$ to solve for it, which is,
 \begin{equation}
-\tilde{\mathbf{r}}_1 = \lambda \mathbf{h}_1, \qquad
-\tilde{\mathbf{r}}_2 = \lambda \mathbf{h}_2.
+\mathbf{r}_3 = \mathbf{r}_1 \times \mathbf{r}_2
 \end{equation}
-
-Enforce orthonormality:
-\begin{equation}
-\tilde{\mathbf{r}}_3 = \tilde{\mathbf{r}}_1 \times \tilde{\mathbf{r}}_2, \qquad
-\tilde{\mathbf{R}} = \begin{bmatrix} \tilde{\mathbf{r}}_1 & \tilde{\mathbf{r}}_2 & \tilde{\mathbf{r}}_3 \end{bmatrix}.
-\end{equation}
-
-Project onto $SO(3)$:
-\begin{equation}
-\tilde{\mathbf{R}} = \mathbf{U}\mathbf{\Sigma}\mathbf{V}^\top, \qquad
-\mathbf{R} = \mathbf{U}\mathbf{V}^\top.
-\end{equation}
-If $\det(\mathbf{R}) < 0$, set $\mathbf{R} \leftarrow -\mathbf{R},\; \tilde{\mathbf{t}} \leftarrow -\tilde{\mathbf{t}}$.
-
-The translation direction is recovered up to scale:
-\begin{equation}
-\frac{\mathbf{t}}{d} = \lambda \mathbf{h}_3.
-\end{equation}
-
-
-<h3>Triangulation</h3>
 
 <h3>PnP: Motion from 2D-3D correspondences</h3>
+
+
+<h3>Triangulation and Reprojection Error</h3>
+
 
 <h2>References</h2>
 <ol>
