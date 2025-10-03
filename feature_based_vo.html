@@ -482,7 +482,7 @@ Substitute the SVD of $[\mathbf{t}]_\times$ back to $\mathbf{E}$, we have,
 \end{aligned}
 \end{equation}
 
-set $\mathbf{Z} \mathbf{U}^\top \mathbf{R} = \mathbf{V}^\top$, it then gives the SVD form of $\mathbf{E}$. Previous we know the rank of $\mathbf{E}$ is 2, and now we prove that it does have two singular values thus the rank is 2. <br>
+set $\mathbf{Z} \mathbf{U}^\top \mathbf{R} = \mathbf{V}^\top$, it then gives the SVD form of $\mathbf{E}$. Previously we know that the rank of $\mathbf{E}$ is 2, and now we prove that it does have two singular values thus the rank is 2. <br>
 
 The third column $\mathbf{v}_3$ of $\mathbf{V}$ spans the right nullspace of $\mathbf{E}$, hence $\mathbf{v}_3 \parallel - \mathbf{R}^\top \mathbf{t}$. <br>
 
@@ -518,7 +518,7 @@ Here we have a interesting matrix $\mathbf{V} \mathbf{Z} \mathbf{Z} \mathbf{V}^\
 0 & 0 & 1
 \end{bmatrix}
 \end{equation}
-which is a rotation matrix that flips $x$ and $y$ axes, in the computer vision coordiaate convention, this actually is a clockwise rotation of $180$ degrees around the $z$ axis. <br>
+which is a rotation matrix that flips $x$ and $y$ axes, in the computer vision coordinate convention, this actually is a clockwise rotation of $180$ degrees around the $z$ axis. <br>
 
 So what about $\mathbf{V} \mathbf{Z} \mathbf{Z} \mathbf{V}^\top$? We need to bring another concept called $\textit{conjugated rotation}$. It changes the original rotation axis, which is $z$ axis (last axis) in the local camera frame, for $\mathbf{Z} \mathbf{Z}$, to the $z$-alike axis of $\mathbf{V}$, hence the axis represented by the last column of $\mathbf{V}$. What is the last column of $\mathbf{V}$? It represents the right nullspace of essential matrix $\mathbf{E}$, which is parallel to $-\mathbf{R}^\top \mathbf{t}$, camera 2's center seen in camera 1's frame. This is the baseline direction connecting two camera centers. Thus $\mathbf{V} \mathbf{Z} \mathbf{Z} \mathbf{V}^\top$ rotates camera by 180 degrees around the baseline direction. That's why in the figure below, the two solutions of $\mathbf{R}$ flipped around the baseline direction.<br>
 <div class="figure">
