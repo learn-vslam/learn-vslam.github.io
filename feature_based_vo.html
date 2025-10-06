@@ -448,7 +448,7 @@ If we apply camera intrinsics $\mathbf{K}_2$, epipole $\mathbf{e}_2$, which is t
 From the previous conclusion we know $\mathbf{e}_2$ is in the left nullspace of $\mathbf{F}$, and we just concluded that $\mathbf{t}$ is in the left nullspace of $\mathbf{E}$. Here it's all connected again. Trivially we can also verify the case for $\mathbf{e}_1$. <br>
 
 
-The skew matrix $[\mathbf{t}]_\times$ has singular values
+We introduce a Proposition here for the SVD of skew-symmetric matrix $[\mathbf{t}]_\times$. $[\mathbf{t}]_\times$ has singular values
 \begin{equation}
 (\,\|\mathbf{t}\|, \; \|\mathbf{t}\|, \; 0 \,),
 \end{equation}
@@ -472,6 +472,8 @@ There are two possible solutions for $\mathbf{t}$,
 \qquad
 \mathbf{t}_2 = - \mathbf{u}_3
 \end{equation}
+
+(end of Proposition) <br>
 
 Since if the sign of $\mathbf{t}$ is flipped, the sign of $\mathbf{E}$ is also flipped, but the relationship $\mathbf{x}_2^\top \mathbf{E} \mathbf{x}_1 = 0$ still holds. <br>
 
@@ -596,10 +598,173 @@ The first two columns of $\mathbf{R}$ and $\mathbf{t}$ can be directly obtained 
 \mathbf{r}_3 = \mathbf{r}_1 \times \mathbf{r}_2
 \end{equation}
 
-<h3>PnP: Motion from 2D-3D correspondences</h3>
-
 
 <h3>Triangulation and Reprojection Error</h3>
+In this part we introduce the methods to compute the 3D landmark points from the 2D correspondences and the camera motion, which is often called triangulation.
+
+<div class="figure">
+    <img src="figs/feature_vo/triangulation.png" alt="Illustration of triangulation" style="width: 65%;">
+    <div class="figure-caption">Illustration of triangulation. (figure from $\textit{Multiview Geometry in Computer Vision, by Richard Hartley and Andrew Zisserman}$) </div>
+</div>
+
+In each image we have a measurement $\mathbf{x}_1 = \mathbf{P}_1 \mathbf{X} = \mathbf{K}_1 \mathbf{T}_{C_1W} \mathbf{X}$,
+and$\mathbf{x}_2 = \mathbf{P}_2 \mathbf{X} = \mathbf{K}_2 \mathbf{T}_{C_2W} \mathbf{X}$, and these equations can be combined into a form 
+$\mathbf{A}\mathbf{X} = 0$, which is an equation linear in $\mathbf{X}$.
+
+First the homogeneous scale factor is eliminated by a cross product to give three
+equations for each image point, of which two are linearly independent. 
+
+For example, for the first image, with slight abuse of notation,
+\begin{equation}
+\begin{bmatrix}
+x \\ y \\ 1
+\end{bmatrix}
+ = 
+\begin{bmatrix}
+\mathbf{p}_1^\top \\ \mathbf{p}_2^\top \\ \mathbf{p}_3^\top
+\end{bmatrix}
+\begin{bmatrix}
+X \\ Y \\ Z
+\end{bmatrix}
+=
+\begin{bmatrix}
+\mathbf{p}_1^\top \mathbf{X} \\ \mathbf{p}_2^\top \mathbf{X} \\ \mathbf{p}_3^\top \mathbf{X}
+\end{bmatrix}
+\end{equation}
+
+and apply $\mathbf{x} \times (\mathbf{P} \mathbf{X}) = 0$, 
+
+\begin{equation}
+\begin{aligned}
+x(\mathbf{p}_3^{\mathrm{T}}\mathbf{X}) - (\mathbf{p}_1^{\mathrm{T}}\mathbf{X}) &= 0 \\
+y(\mathbf{p}_3^{\mathrm{T}}\mathbf{X}) - (\mathbf{p}_2^{\mathrm{T}}\mathbf{X}) &= 0 \\
+x(\mathbf{p}_2^{\mathrm{T}}\mathbf{X}) - y(\mathbf{p}_1^{\mathrm{T}}\mathbf{X}) &= 0
+\end{aligned}
+\end{equation}
+
+where $\mathbf{p}_i^{\mathrm{T}}$ are the rows of $\mathbf{P}$. The stack the above equations for both $x_1$ and $x_2$, we have a linear equation as,
+
+\begin{equation}
+\begin{bmatrix}
+x_1\mathbf{p}_3^{\mathrm{T}} - \mathbf{p}_1^{\mathrm{T}} \\
+y_1\mathbf{p}_3^{\mathrm{T}} - \mathbf{p}_2^{\mathrm{T}} \\
+x_2\mathbf{p}_3^{\mathrm{T}} - \mathbf{p}_1^{\mathrm{T}} \\
+y_2\mathbf{p}_3^{\mathrm{T}} - \mathbf{p}_2^{\mathrm{T}}
+\end{bmatrix}
+\mathbf{X} 
+=
+\mathbf{A} \mathbf{X} = \mathbf{0}
+\end{equation}
+
+where two equations have been included from each image, giving a total of four equations
+in four homogeneous unknowns. This is a redundant set of equations, since the solution
+is determined only up to scale. The solution of $\mathbf{X}$ is the last column of $\mathbf{V}$ of the SVD of $\mathbf{A}$. This is called the DLT (Direct Linear Transform) method. <br>
+
+Besides solving the linear equation, triangulation can also be solved with a optimization method by minimizing the reprojection error.
+
+\begin{equation}
+\begin{aligned}
+\hat{\mathbf{X}}^* &= \arg \min_{\mathbf{X}} \sum_{i=1}^{2} \left\| \mathbf{x}_i - \mathbf{P}_i \mathbf{X} \right\|_2^2 \\
+&= \arg \min_{\mathbf{X}} \sum_{i=1}^{2} \left\| \mathbf{x}_i - \pi(\mathbf{R}_i, \mathbf{t}_i, \mathbf{X}) \right\|_2^2
+\end{aligned}
+\end{equation}
+
+
+<h3>PnP: Motion from 2D-3D correspondences</h3>
+The PnP (Perspective-n-Point) problem is closely related to triangulation. It is to estimate the camera pose $\mathbf{R}$ and $\mathbf{t}$ from 3D-2D correspondences, $\mathbf{x}$ and $\mathbf{X}$ and we assume $\mathbf{X}$ is known and fixed.
+
+In this problem we still apply the projection model, assume $\mathbf{K}$ is a identity matrix and with a slight abuse of notation,
+\begin{equation}
+\begin{bmatrix}
+x \\ y \\ 1
+\end{bmatrix}
+=
+[\mathbf{R} | \mathbf{t}]
+\mathbf{X}
+= 
+\begin{bmatrix}
+\mathbf{p}_1^\top \\ \mathbf{p}_2^\top \\ \mathbf{p}_3^\top
+\end{bmatrix}
+\mathbf{X}
+=
+\begin{bmatrix}
+\mathbf{p}_1^\top \mathbf{X} \\ \mathbf{p}_2^\top \mathbf{X} \\ \mathbf{p}_3^\top \mathbf{X}
+\end{bmatrix}
+\end{equation}
+
+this is exactly the same as the case for triangulation, but here in PnP we are solve matrix $\mathbf{P}$ instead of $\mathbf{X}$.
+
+So starts from the same equation as triangulation,
+\begin{equation}
+\mathbf{p}_1^{\top}\mathbf{X} - \mathbf{p}_3^{\top}\mathbf{X}\, x = 0,
+\qquad
+\mathbf{p}_2^{\top}\mathbf{X} - \mathbf{p}_3^{\top}\mathbf{X}\, y = 0 .
+\end{equation}
+
+we do a little rearrangement,
+\begin{equation}
+\mathbf{X}^{\top} \mathbf{p}_1 + 0 - \mathbf{X}^{\top} \mathbf{p}_3\, x = 0,
+\qquad
+0  + \mathbf{X}^{\top} \mathbf{p}_2  - \mathbf{X}^{\top} \mathbf{p}_3\, y = 0 .
+\end{equation}
+
+Stack the above equations for all correspondences $\{\mathbf{x}_i, \mathbf{X}_i\}$, we have a linear system as,
+\begin{equation}
+\begin{bmatrix}
+\mathbf{X}_1^{\top} & \mathbf{0} & -x_1 \mathbf{X}_1^{\top} \\
+\mathbf{0} & \mathbf{X}_1^{\top} & -y_1 \mathbf{X}_1^{\top} \\
+\vdots & \vdots & \vdots \\
+\mathbf{X}_N^{\top} & \mathbf{0} & -x_N \mathbf{X}_N^{\top} \\
+\mathbf{0} & \mathbf{X}_N^{\top} & -y_N \mathbf{X}_N^{\top}
+\end{bmatrix}
+\begin{bmatrix}
+\mathbf{p}_1 \\ \mathbf{p}_2 \\ \mathbf{p}_3
+\end{bmatrix}
+= \mathbf{0}.
+\end{equation}
+
+As a DLT solution to the above linear system, we will get a 12-dimensional vector stacking $\{\mathbf{p}_1, \mathbf{p}_2, \mathbf{p}_3\}$, or $[\hat{\mathbf{R}} | \hat{\mathbf{t}}]$ in matrix form. But remember the left part of the matrix is actually rotation matrix $\mathbf{R} \in \mathrm{SO}(3)$, and the directly solution may not satisfy the special property of $\mathbf{R}$, such as orthogonality and determinant 1. So we need to further constrain the solution to satisfy the special property of $\mathbf{R}$. To obtain a true rotation matrix, we project DLT estimation $\hat{\mathbf{R}}$ onto the
+rotation manifold using the $\textit{polar decomposition}$.
+
+Any nonsingular matrix $\hat{\mathbf{R}} \in \mathbb{R}^{3\times3}$ can
+be decomposed as
+\begin{equation}
+\hat{\mathbf{R}} = \mathbf{R}\,\mathbf{S},
+\end{equation}
+where $\mathbf{R}$ is an orthogonal matrix and $\mathbf{S}$ is a symmetric positive-definite matrix.
+
+The orthogonal factor $\mathbf{R}$ obtained from this decomposition
+is precisely the minimizer of the Frobenius norm of the following objective function,
+\begin{equation}
+\mathbf{R}
+= \arg\min_{\mathbf{R}\in O(3)} 
+\|\hat{\mathbf{R}} - \mathbf{R}\|_F .
+\end{equation}
+
+and the result can be computed as
+\begin{equation}
+\mathbf{R}
+= \hat{\mathbf{R}}(\hat{\mathbf{R}}^\top \hat{\mathbf{R}})^{-\frac{1}{2}}
+= (\hat{\mathbf{R}}\hat{\mathbf{R}}^\top)^{-\frac{1}{2}}\hat{\mathbf{R}}.
+\end{equation}
+
+Thus, the corrected rotation estimation is computed as
+\begin{equation}
+\mathbf{R} \;\leftarrow\;
+(\hat{\mathbf{R}}\hat{\mathbf{R}}^\top)^{-\frac{1}{2}}\hat{\mathbf{R}}
+\end{equation}
+
+<!-- Alternatively, using the singular value decomposition
+$\hat{\mathbf{R}} = \mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^\top$,
+the orthogonal projection can be written as
+\begin{equation}
+\mathbf{R} = \mathbf{U}\mathbf{V}^\top, \qquad
+\mathbf{S} = \mathbf{V}\boldsymbol{\Sigma}\mathbf{V}^\top.
+\end{equation}
+This $\mathbf{R}$ minimizes
+$\|\hat{\mathbf{R}} - \mathbf{R}\|_F$ over $\mathbf{R}\in O(3)$.
+If $\det(\mathbf{R}) < 0$, one column of $\mathbf{U}$ or $\mathbf{V}$
+can be negated to enforce $\det(\mathbf{R}) = +1$. -->
 
 
 <h2>References</h2>
