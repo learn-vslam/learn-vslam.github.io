@@ -766,6 +766,112 @@ $\|\hat{\mathbf{R}} - \mathbf{R}\|_F$ over $\mathbf{R}\in O(3)$.
 If $\det(\mathbf{R}) < 0$, one column of $\mathbf{U}$ or $\mathbf{V}$
 can be negated to enforce $\det(\mathbf{R}) = +1$. -->
 
+We can also address the PnP problem with a optimization method by minimizing the reprojection error, just similar to the triangulation method.
+\begin{equation}
+s_i \mathbf{x}_i = \mathbf{K T X}_{Wi} .
+\end{equation}
+
+<!-- \begin{equation}
+\mathbf{e}(\mathbf{x} + \Delta \mathbf{x}) \approx \mathbf{e}(\mathbf{x}) + \mathbf{J}^\mathrm{T} \Delta \mathbf{x}.
+\tag{6.37}
+\end{equation} -->
+
+\begin{equation}
+\mathbf{T}^* = \arg \min_{\mathbf{T}} \left( \mathbf{e} \right) = \arg \min_{\mathbf{T}} \left( \frac{1}{2} \sum_{i=1}^{n}\left\| \mathbf{x}_i - \frac{1}{s_i}\mathbf{K T X}_{Wi} \right\|_2^2 \right)
+\end{equation}
+
+
+represent the point $\mathbf{X}_{Wi}$ in the camera frame as $\mathbf{X}_{Ci}$,
+\begin{equation}
+\mathbf{X}_{Ci}= \begin{bmatrix}
+X' \\
+Y' \\
+Z'
+\end{bmatrix}
+\end{equation}
+
+
+\begin{equation}
+u = f_x \frac{X'}{Z'} + c_x, 
+\quad
+v = f_y \frac{Y'}{Z'} + c_y.
+\end{equation}
+
+Take the derivative of the reprojection error with respect to the small perturbation of the pose,
+\begin{equation}
+\frac{\partial \mathbf{e}}{\partial \boldsymbol{\xi}}
+=
+\lim_{\delta \boldsymbol{\xi} \rightarrow 0}
+\frac{
+\mathbf{e}(\delta \boldsymbol{\xi} \oplus \boldsymbol{\xi}) - \mathbf{e}(\boldsymbol{\xi})
+}{
+\delta \boldsymbol{\xi}
+}
+=
+\frac{\partial \mathbf{e}}{\partial \mathbf{X}_{Ci}} 
+\frac{\partial \mathbf{X}_{Ci}}{\partial \boldsymbol{\xi}}.
+\end{equation}
+
+\begin{equation}
+\frac{\partial \mathbf{e}}{\partial \mathbf{X}_{Ci}}
+=
+-
+\begin{bmatrix}
+\dfrac{f_x}{Z'} & 0 & -\dfrac{f_x X'}{Z'^2} \\
+0 & \dfrac{f_y}{Z'} & -\dfrac{f_y Y'}{Z'^2}
+\end{bmatrix}.
+\end{equation}
+
+\begin{equation}
+\frac{\partial (\mathbf{T P})}{\partial \boldsymbol{\xi}^{\odot}}
+= 
+(\mathbf{T P})^{\odot}
+=
+\begin{bmatrix}
+\mathbf{I} & -\mathbf{P}^{\wedge} \\
+\mathbf{0}^\mathrm{T} & \mathbf{0}^\mathrm{T}
+\end{bmatrix}.
+\end{equation}
+
+\begin{equation}
+\frac{\partial \mathbf{X}_{Ci}'}{\partial \boldsymbol{\xi}}
+=
+[\mathbf{I}, -\mathbf{X}_{Ci}^{\wedge}].
+\end{equation}
+
+
+\begin{equation}
+\frac{\partial \mathbf{e}}{\partial \delta \boldsymbol{\xi}} =
+- \begin{bmatrix}
+\frac{f_x}{Z'} & 0 & -\frac{f_x X'}{Z'^2} & -\frac{f_x X' Y'}{Z'^2} & f_x + \frac{f_x X'^2}{Z'^2} & -\frac{f_x Y'}{Z'} \\
+0 & \frac{f_y}{Z'} & -\frac{f_y Y'}{Z'^2} & -f_y - \frac{f_y Y'^2}{Z'^2} & \frac{f_y X' Y'}{Z'^2} & \frac{f_y X'}{Z'}
+\end{bmatrix}
+\end{equation}
+
+
+\begin{equation}
+\frac{\partial \mathbf{e}}{\partial \mathbf{X}_W}
+=
+\frac{\partial \mathbf{e}}{\partial \mathbf{X}_C}
+\frac{\partial \mathbf{X}_C}{\partial \mathbf{X}_W}.
+\end{equation}
+
+\begin{equation}
+\mathbf{X}_{Ci}' = (\mathbf{T X}_{Ci})_{1:3} = \mathbf{R X}_{Ci} + \mathbf{t}.
+\end{equation}
+
+\begin{equation}
+\frac{\partial \mathbf{e}}{\partial \mathbf{X}}
+=
+-
+\begin{bmatrix}
+\dfrac{f_x}{Z'} & 0 & -\dfrac{f_x X'}{Z'^2} \\
+0 & \dfrac{f_y}{Z'} & -\dfrac{f_y Y'}{Z'^2}
+\end{bmatrix}
+\mathbf{R}.
+\end{equation}
+
+
 
 <h2>References</h2>
 <ol>
