@@ -658,15 +658,81 @@ y_2\mathbf{p}_3^{\mathrm{T}} - \mathbf{p}_2^{\mathrm{T}}
 
 where two equations have been included from each image, giving a total of four equations
 in four homogeneous unknowns. This is a redundant set of equations, since the solution
-is determined only up to scale. The solution of $\mathbf{X}$ is the last column of $\mathbf{V}$ of the SVD of $\mathbf{A}$. This is called the DLT (Direct Linear Transform) method. <br>
+is determined only up to scale. The solution of $\mathbf{X}$ is the last column of $\mathbf{V}$ of the SVD of $\mathbf{A}$. This is called the DLT (Direct Linear Transform) method. <br> <br>
 
 Besides solving the linear equation, triangulation can also be solved with a optimization method by minimizing the reprojection error.
 
 \begin{equation}
 \begin{aligned}
-\hat{\mathbf{X}}^* &= \arg \min_{\mathbf{X}} \sum_{i=1}^{2} \left\| \mathbf{x}_i - \mathbf{P}_i \mathbf{X} \right\|_2^2 \\
-&= \arg \min_{\mathbf{X}} \sum_{i=1}^{2} \left\| \mathbf{x}_i - \pi(\mathbf{R}_i, \mathbf{t}_i, \mathbf{X}) \right\|_2^2
+\hat{\mathbf{X}_{Wi}}^*  = \arg \min_{\mathbf{X}_{Wi}}  \left( \mathbf{e} \right) &= \arg \min_{\mathbf{X}_{Wi}} \frac{1}{2} \sum_{j=1}^{2} \left\| \mathbf{x}_i - \mathbf{P}_j \mathbf{X}_{Wi} \right\|_2^2 \\
+&= \arg \min_{\mathbf{X}_{Wi}} \frac{1}{2} \sum_{j=1}^{2} \left\| \mathbf{x}_j - \pi(\mathbf{R}_j, \mathbf{t}_j, \mathbf{X}_{Wi}) \right\|_2^2 \\
+\label{eq:reproj_error_triangulation}
 \end{aligned}
+\end{equation}
+<!-- &= \arg \min_{\mathbf{X}_{Wi}} \frac{1}{2} \sum_{i=1}^{2} \left\| \mathbf{x}_i - \mathbf{K} \mathbf{T}_{WC} \mathbf{X}_{Wi} \right\|_2^2 \\ -->
+
+We usually use $\pi()$ to denote the projection function, please be reminded that the full projection is only up to a scale factor, but in the rest of the derivation we just igore the scale notation.
+\begin{equation}
+s_i \mathbf{x}_i = \mathbf{K} \mathbf{T}_{CW} \mathbf{X}_{Wi} .
+\end{equation}
+
+We need to find the derivate of the cost function with respect to the 3D point $\mathbf{X}_{Wi}$ to solve the optimization problem, simply apply the chain rule,
+
+represent the point $\mathbf{X}_{Wi}$ in the camera frame as $\mathbf{X}_{Ci}$,
+\begin{equation}
+\mathbf{X}_{Ci}= \begin{bmatrix}
+X' \\
+Y' \\
+Z'
+\end{bmatrix}
+\end{equation}
+
+
+\begin{equation}
+u = f_x \frac{X'}{Z'} + c_x, 
+\quad
+v = f_y \frac{Y'}{Z'} + c_y.
+\end{equation}
+
+
+\begin{equation}
+\frac{\partial \mathbf{e}}{\partial \mathbf{X}_{Wi}}
+=
+\frac{\partial \mathbf{e}}{\partial \mathbf{X}_{Ci}}
+\frac{\partial \mathbf{X}_{Ci}}{\partial \mathbf{X}_{Wi}}.
+\end{equation}
+
+\begin{equation}
+\mathbf{X}_{Ci} = (\mathbf{T}_{CW} \mathbf{X}_{Wi})_{1:3} = \mathbf{R X}_{Wi} + \mathbf{t}
+\end{equation}
+
+
+Going back to the reprojection error equation \ref{eq:reproj_error}, only the intrinsic matrix $\mathbf{K}$ is related to the 3D point $\mathbf{X}_{Ci}$, the derivative can be computed as,
+\begin{equation}
+\frac{\partial \mathbf{e}}{\partial \mathbf{X}_{Ci}}
+=
+-\begin{bmatrix}
+\frac{\partial u}{\partial X'} & \frac{\partial u}{\partial Y'} & \frac{\partial u}{\partial Z'} \\
+\frac{\partial v}{\partial X'} & \frac{\partial v}{\partial Y'} & \frac{\partial v}{\partial Z'}
+\end{bmatrix}
+=
+-\begin{bmatrix}
+\dfrac{f_x}{Z'} & 0 & -\dfrac{f_x X'}{Z'^2} \\
+0 & \dfrac{f_y}{Z'} & -\dfrac{f_y Y'}{Z'^2}
+\end{bmatrix}
+\label{eq:partial_e_partial_X_Ci}
+\end{equation}
+
+Then the derivative of the cost function with respect to the 3D point in world frame $\mathbf{X}_{Wi}$ is,
+\begin{equation}
+\frac{\partial \mathbf{e}}{\partial \mathbf{X}_{Wi}}
+=
+-
+\begin{bmatrix}
+\dfrac{f_x}{Z'} & 0 & -\dfrac{f_x X'}{Z'^2} \\
+0 & \dfrac{f_y}{Z'} & -\dfrac{f_y Y'}{Z'^2}
+\end{bmatrix}
+\mathbf{R}^\top
 \end{equation}
 
 
@@ -766,38 +832,18 @@ $\|\hat{\mathbf{R}} - \mathbf{R}\|_F$ over $\mathbf{R}\in O(3)$.
 If $\det(\mathbf{R}) < 0$, one column of $\mathbf{U}$ or $\mathbf{V}$
 can be negated to enforce $\det(\mathbf{R}) = +1$. -->
 
-We can also address the PnP problem with a optimization method by minimizing the reprojection error, just similar to the triangulation method.
-\begin{equation}
-s_i \mathbf{x}_i = \mathbf{K T X}_{Wi} .
-\end{equation}
-
+We can also address the PnP problem with a optimization method by minimizing the reprojection error w.r.t. the camera pose $\mathbf{T}_{CW} \in \mathrm{SE}(3)$. Apply the same optimization objective as the triangulation problem \ref{eq:reproj_error_triangulation},
 <!-- \begin{equation}
 \mathbf{e}(\mathbf{x} + \Delta \mathbf{x}) \approx \mathbf{e}(\mathbf{x}) + \mathbf{J}^\mathrm{T} \Delta \mathbf{x}.
 \tag{6.37}
 \end{equation} -->
 
 \begin{equation}
-\mathbf{T}^* = \arg \min_{\mathbf{T}} \left( \mathbf{e} \right) = \arg \min_{\mathbf{T}} \left( \frac{1}{2} \sum_{i=1}^{n}\left\| \mathbf{x}_i - \frac{1}{s_i}\mathbf{K T X}_{Wi} \right\|_2^2 \right)
+\mathbf{T}_{CW}^* = \arg \min_{\mathbf{T}_{CW}} \left( \mathbf{e} \right) = \arg \min_{\mathbf{T}_{CW}} \left( \frac{1}{2} \sum_{i=1}^{n}\left\| \mathbf{x}_i - \mathbf{K} \mathbf{T}_{CW} \mathbf{X}_{Wi} \right\|_2^2 \right)
+\label{eq:reproj_error}
 \end{equation}
 
-
-represent the point $\mathbf{X}_{Wi}$ in the camera frame as $\mathbf{X}_{Ci}$,
-\begin{equation}
-\mathbf{X}_{Ci}= \begin{bmatrix}
-X' \\
-Y' \\
-Z'
-\end{bmatrix}
-\end{equation}
-
-
-\begin{equation}
-u = f_x \frac{X'}{Z'} + c_x, 
-\quad
-v = f_y \frac{Y'}{Z'} + c_y.
-\end{equation}
-
-Take the derivative of the reprojection error with respect to the small perturbation of the pose,
+Take the derivative of the reprojection error with respect to the small perturbation $\boldsymbol{\xi} \in \mathfrak{se}(3)$ of the pose $\mathbf{T}_{CW}$,
 \begin{equation}
 \frac{\partial \mathbf{e}}{\partial \boldsymbol{\xi}}
 =
@@ -812,34 +858,26 @@ Take the derivative of the reprojection error with respect to the small perturba
 \frac{\partial \mathbf{X}_{Ci}}{\partial \boldsymbol{\xi}}.
 \end{equation}
 
+Apply the pertubation model in $\mathrm{SE}(3)$ we previously derived, we have
 \begin{equation}
-\frac{\partial \mathbf{e}}{\partial \mathbf{X}_{Ci}}
-=
--
-\begin{bmatrix}
-\dfrac{f_x}{Z'} & 0 & -\dfrac{f_x X'}{Z'^2} \\
-0 & \dfrac{f_y}{Z'} & -\dfrac{f_y Y'}{Z'^2}
-\end{bmatrix}.
-\end{equation}
-
-\begin{equation}
-\frac{\partial (\mathbf{T P})}{\partial \boldsymbol{\xi}^{\odot}}
+\frac{\partial (\mathbf{T}_{CW} \mathbf{X}_{Wi})}{\partial \boldsymbol{\xi}}
 = 
-(\mathbf{T P})^{\odot}
+(\mathbf{T}_{CW} \mathbf{X}_{Wi})^{\odot}
 =
 \begin{bmatrix}
-\mathbf{I} & -\mathbf{P}^{\wedge} \\
-\mathbf{0}^\mathrm{T} & \mathbf{0}^\mathrm{T}
-\end{bmatrix}.
-\end{equation}
-
-\begin{equation}
-\frac{\partial \mathbf{X}_{Ci}'}{\partial \boldsymbol{\xi}}
+\mathbf{I} & -(\mathbf{T}_{CW} \mathbf{X}_{Wi})^{\wedge} \\
+\mathbf{0}^\top & \mathbf{0}^\top
+\end{bmatrix} 
 =
-[\mathbf{I}, -\mathbf{X}_{Ci}^{\wedge}].
+\begin{bmatrix}
+\mathbf{I} & -(\mathbf{X}_{Ci})^{\wedge} \\
+\mathbf{0}^\top & \mathbf{0}^\top
+\end{bmatrix}
+\in \mathbb{R}^{4 \times 6}
 \end{equation}
 
 
+Multiply equation \ref{eq:partial_e_partial_X_Ci} and the above equation, we have
 \begin{equation}
 \frac{\partial \mathbf{e}}{\partial \delta \boldsymbol{\xi}} =
 - \begin{bmatrix}
@@ -848,30 +886,7 @@ Take the derivative of the reprojection error with respect to the small perturba
 \end{bmatrix}
 \end{equation}
 
-
-\begin{equation}
-\frac{\partial \mathbf{e}}{\partial \mathbf{X}_W}
-=
-\frac{\partial \mathbf{e}}{\partial \mathbf{X}_C}
-\frac{\partial \mathbf{X}_C}{\partial \mathbf{X}_W}.
-\end{equation}
-
-\begin{equation}
-\mathbf{X}_{Ci}' = (\mathbf{T X}_{Ci})_{1:3} = \mathbf{R X}_{Ci} + \mathbf{t}.
-\end{equation}
-
-\begin{equation}
-\frac{\partial \mathbf{e}}{\partial \mathbf{X}}
-=
--
-\begin{bmatrix}
-\dfrac{f_x}{Z'} & 0 & -\dfrac{f_x X'}{Z'^2} \\
-0 & \dfrac{f_y}{Z'} & -\dfrac{f_y Y'}{Z'^2}
-\end{bmatrix}
-\mathbf{R}.
-\end{equation}
-
-
+The optimization of the reprojection error with respect to the camera pose $\mathbf{T}_{CW}$ and 3D point $\mathbf{X}_{Wi}$ builds important foundation for the next important problem we will introduce, the <i>bundle adjustment</i> problem.
 
 <h2>References</h2>
 <ol>
