@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,400,900">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:300,400,700">
+    <link rel="stylesheet" href="../../latex.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          processEscapes: true
+        },
+        TeX: {
+          equationNumbers: {
+            autoNumber: "AMS",
+            useLabelIds: true
+          }
+        },
+        "HTML-CSS": {
+          availableFonts: ["STIX"],
+          linebreaks: { automatic: true },
+          imageFont: null
+        }
+      });
+    </script>
+    <script type="text/javascript" async
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+    </script>
+    <meta charset="UTF-8">
+    <base target="_blank">
+    <title>Feature-based Visual Odometry</title>
+    <style>
+        body {
+            font-family: 'Lato', 'Google Sans', sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px 40px;
+            font-size: 20px;
+            counter-reset: figure-counter;
+            text-align: justify;
+        }
+        h1 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            text-align: center;
+            margin-bottom: 2em;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.8em;
+            margin-top: 1.5em;
+        }
+        h3 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.4em;
+            margin-top: 1.2em;
+        }
+        .figure {
+            text-align: center;
+            margin: 30px 0;
+            width: 100%;
+            counter-increment: figure-counter;
+        }
+        .figure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .figure-caption {
+            font-style: italic;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .figure-caption::before {
+            content: "Figure " counter(figure-counter) ": ";
+            font-weight: bold;
+            font-style: normal;
+        }
+        .subfigure-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 20px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .subfigure {
+            flex: 0 1 600px;
+            text-align: center;
+        }
+        .subfigure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            min-width: 400px;
+        }
+        .subfigure .figure-caption {
+            font-style: italic;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .subfigure .figure-caption::before {
+            content: none;
+        }
+        .MathJax {
+            font-size: 1.1em !important;
+        }
+        .MathJax_Display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin: 1em 0;
+        }
+        .equation-container {
+            display: table;
+            width: 100%;
+            margin: 1.5em 0;
+        }
+        .equation-content {
+            display: table-cell;
+            width: 100%;
+        }
+        .figure-label::before {
+            content: "Figure " counter(figure-counter) ":";
+            font-weight: bold;
+            margin-right: 0.5em;
+        }
+        /* MathJax display styles */
+        .MJXc-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .MJXc-display::-webkit-scrollbar {
+            width: 5px;
+            height: 2px;
+        }
+        .MJXc-display::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .MJXc-display::-webkit-scrollbar-thumb {
+            background: #ddd;
+            visibility:hidden;
+        }
+        .MJXc-display:hover::-webkit-scrollbar-thumb {
+            visibility:visible;
+        }
+    </style>
+</head>
+<body>
+<h1>Direct Visual Odometry</h1>
+
+<h2>Sparse Direct Visual Odometry</h2>
+The previous introduced feature-based visual odometry methods are mostly always sparse due to the extraction of keypoint and point features in images. In sparse direct visual odometry, we also track sparse keypoints in images, but instead of using features, we use the pixel intensity values directly. This will apply the sparse optical flow we introcued previously, e.g. Lucas-Kanade method.
+
+<h2>Dense Direct Visual Odometry</h2>
+In a dense direct visual odometry, we ultilize the pixel intensity in the entire image. The first steps of direct VO is to have an initial guess of current reference depth map and camera pose. Then we warp the reference image to the target frame using the estimated camera pose and depth map, and compute the photometric loss between the warped image and the target image, to optimize the camera pose and depth map.
+
+\begin{equation}
+\mathbf{X}_W = [\,X,\;Y,\;Z\,]^{\top}
+\end{equation}
+
+\begin{equation}
+\tilde{\mathbf{x}}_{\mathrm{im,ref}} = \frac{1}{Z}\,\mathbf{K}\,\mathbf{X}_W
+\end{equation}
+
+\begin{equation}
+\mathbf{X}_W = \hat{Z}\,\mathbf{K}^{-1}\,\tilde{\mathbf{x}}_{\mathrm{im,ref}}
+\end{equation}
+
+\begin{equation}
+\tilde{\mathbf{x}}_{\mathrm{im,warp}} =
+\mathbf{K}\,[\,\hat{\mathbf{R}}\mid \hat{\mathbf{t}}\,]\,
+\hat{Z}\,\mathbf{K}^{-1}\,\tilde{\mathbf{x}}_{\mathrm{im,ref}}
+\end{equation}
+
+The photometric loss is then formulated as,
+\begin{equation}
+L = \frac{1}{HW}\sum_{i=1}^{HW}
+\left|\,I_{\mathrm{target}}(i) - I_{\mathrm{warp}}(i)\,\right|
+\end{equation}

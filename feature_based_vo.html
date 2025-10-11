@@ -888,6 +888,10 @@ Multiply equation \ref{eq:partial_e_partial_X_Ci} and the above equation, we hav
 
 The optimization of the reprojection error with respect to the camera pose $\mathbf{T}_{CW}$ and 3D point $\mathbf{X}_{Wi}$ builds important foundation for the next important problem we will introduce, the <i>bundle adjustment</i> problem.
 
+<h2>Extends to multiple views</h2>
+In a real world scenario, the camera moves in the 3D space, and we need to compute the camera pose and 3D point in the world frame for each frame or slected frames. In pure visual odometry, using the first camera frame as the world frame is a common convention. We can just sequentially compute the relative motion between two consecutive frames and then get the trasnformation relatively to the initial frame. This process consists of the most basic part of the visual SLAM/odometry system, and is often called <i>dead reckoning</i>. Together with this sequentiall motion estimation, feature extraction, matching, and triangulation, we have the frontend of a visual SLAM system, also sometimes refered to as visual odometry. In real visual SLAM system, we often have more components such as bundle adjustment to refine the camera pose and 3D point, key-frame selection to reduce redundancy, and loop closure detection to correct the drift. Those components are usually refered to as the backend of visual SLAM system, which will be introduced in the next few sections.
+
+
 <h2>References</h2>
 <ol>
     <li>Visual SLAM: From Theory to Practice, by Xiang Gao, Tao Zhang, Qinrui Yan and Yi Liu</li>
