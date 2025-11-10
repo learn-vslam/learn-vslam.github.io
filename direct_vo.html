@@ -185,8 +185,112 @@ In a dense direct visual odometry, we ultilize the pixel intensity in the entire
 \hat{Z}\,\mathbf{K}^{-1}\,\tilde{\mathbf{x}}_{\mathrm{im,ref}}
 \end{equation}
 
-The photometric loss is then formulated as,
+This is an optimization problem to optimize the \textit{photometric loss}, which is then formulated as,
 \begin{equation}
-L = \frac{1}{HW}\sum_{i=1}^{HW}
+\min_{\mathbf{T}, \hat{Z}} J(\mathbf{T}, \hat{Z})  = \frac{1}{HW}\sum_{i=1}^{HW}
 \left|\,I_{\mathrm{target}}(i) - I_{\mathrm{warp}}(i)\,\right|
 \end{equation}
+
+<h2>Sparse Direct Visual Odometry</h2>
+In sparse direct methods, we also optimize the camera pose to minimize the photometric error, but insteand of using the whole image or a alrge chunk of image, we only points from the keypoint detection. Here the photometric error is the brightness error of the two pixels of $\mathbf{X}$ projrected to two images:
+\begin{equation}
+e = I_1(\mathbf{x}_1) - I_2(\mathbf{x}_2).
+\end{equation}
+
+where,
+\begin{equation}
+\mathbf{x}_1 =
+\begin{bmatrix}
+u_1 \\ v_1 \\ 1
+\end{bmatrix}
+= \frac{1}{Z_1} \mathbf{K}\mathbf{P}, 
+\qquad
+\mathbf{x}_2 =
+\begin{bmatrix}
+u_2 \\ v_2 \\ 1
+\end{bmatrix}
+= \frac{1}{Z_2} \mathbf{K} (\mathbf{T}\mathbf{X}).
+\end{equation}
+
+Note that $e$ is a scalar here.  
+Similarly, the optimization is with respect to the $L_2$ norm of the error, taking the unweighted form for now, as:
+
+\begin{equation}
+\min_{\mathbf{T}} J(\mathbf{T}) = \| e \|^2.
+\end{equation}
+
+The optimization is still based on the \textbf{constant brightness assumption}.  
+We assume that the grayscale of a spatial point imaged at various viewing points is constant.  
+If we have many (for example, $N$) space points $\mathbf{P}_i$, then the whole camera pose estimation problem becomes:
+
+\begin{equation}
+\min_{\mathbf{T}} J(\mathbf{T}) = \sum_{i=1}^{N} e_i^{\top} e_i, 
+\quad e_i = I_1(\mathbf{p}_{1,i}) - I_2(\mathbf{p}_{2,i}).
+\end{equation}
+
+The variable to be optimized here is the camera pose $\mathbf{T}$, instead of the motion of each feature point in the optical flow.  
+To solve this optimization problem, we are concerned about how the error $e$ changes with the camera pose $\mathbf{T}$,  
+and we need to analyze their derivative relationship.  
+First, define two intermediate variables:
+\begin{equation}
+\mathbf{X}_C = \mathbf{T}\mathbf{X}_W, \qquad
+\mathbf{x} = \frac{1}{Z_2}\mathbf{K}\mathbf{X}_C.
+\end{equation}
+  
+Consider the left perturbation model of Lie algebra, using the first-order Taylor expansion:
+\begin{equation}
+e(\mathbf{T}) = I_1(\mathbf{x}_1) - I_2(\mathbf{x}_2).
+\end{equation}
+
+Then we get:
+
+\begin{equation}
+\frac{\partial e}{\partial \mathbf{T}}
+= - \frac{\partial I_2}{\partial \mathbf{x}}
+\frac{\partial \mathbf{x}}{\partial \mathbf{X}_C}
+\frac{\partial \mathbf{X}_C}{\partial \delta \mathbf{\xi}},
+\end{equation}
+
+where $\delta \mathbf{\xi}$ is the left disturbance of $\mathbf{T}$, where
+
+$\frac{\partial I_2}{\partial \mathbf{x}}$ is the grayscale gradient at pixel $\mathbf{x}$.
+
+$\frac{\partial \mathbf{x}}{\partial \mathbf{X}_C}$ is the derivative of the projection equation with respect to the three-dimensional point in the camera frame. 
+
+Let $\mathbf{X}_C = [X, Y, Z]^{\top}$, according to Chapter 3, the derivative is:
+
+
+\begin{equation}
+\frac{\partial \mathbf{x}}{\partial \mathbf{X}_C} =
+\begin{bmatrix}
+\frac{f_x}{Z} & 0 & -\frac{f_x X}{Z^2} \\
+0 & \frac{f_y}{Z} & -\frac{f_y Y}{Z^2}
+\end{bmatrix}.
+\end{equation}
+
+$\frac{\partial \mathbf{X}_C}{\partial \delta \mathbf{\xi}}$ is the derivative of the transformed three-dimensional point with respect to the transformation, which was introduced before as,
+
+\begin{equation}
+\frac{\partial \mathbf{X}_C}{\partial \delta \mathbf{\xi}} =
+[\mathbf{I}, -\mathbf{X}_C^{\wedge}].
+\end{equation}
+
+In practice, the last two items are only related to the three-dimensional point $\mathbf{X}_C$, which is irrelevant to the image.  
+We often combine them together:
+
+\begin{equation}
+\frac{\partial \mathbf{x}}{\partial \delta \mathbf{\xi}} =
+\begin{bmatrix}
+\frac{f_x}{Z} & 0 & -\frac{f_x X}{Z^2} & -\frac{f_x X Y}{Z^2} & f_x + \frac{f_x X^2}{Z^2} & -\frac{f_x Y}{Z} \\
+0 & \frac{f_y}{Z} & -\frac{f_y Y}{Z^2} & -f_y - \frac{f_y Y^2}{Z^2} & \frac{f_y X Y}{Z^2} & \frac{f_y X}{Z}
+\end{bmatrix}.
+\end{equation}
+
+This $2 \times 6$ matrix also appeared in the previous post. Therefore, we derive the Jacobian of residual with respect to Lie algebra as:
+
+\begin{equation}
+\mathbf{J} = - \frac{\partial I_2}{\partial \mathbf{x}}
+\frac{\partial \mathbf{x}}{\partial \delta \mathbf{\xi}}.
+\end{equation}
+
+This Jacobian is used in to gradient-based optimization problem to update the camera pose.
