@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,400,900">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans:300,400,700">
+    <link rel="stylesheet" href="../../latex.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          processEscapes: true
+        },
+        TeX: {
+          equationNumbers: {
+            autoNumber: "AMS",
+            useLabelIds: true
+          }
+        },
+        "HTML-CSS": {
+          availableFonts: ["STIX"],
+          linebreaks: { automatic: true },
+          imageFont: null
+        }
+      });
+    </script>
+    <script type="text/javascript" async
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+    </script>
+    <meta charset="UTF-8">
+    <base target="_blank">
+    <title>Pose Graph Optimization</title>
+    <style>
+        body {
+            font-family: 'Lato', 'Google Sans', sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px 40px;
+            font-size: 20px;
+            counter-reset: figure-counter;
+            text-align: justify;
+        }
+        h1 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            text-align: center;
+            margin-bottom: 2em;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.8em;
+            margin-top: 1.5em;
+        }
+        h3 {
+            color: #333;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 1.4em;
+            margin-top: 1.2em;
+        }
+        .figure {
+            text-align: center;
+            margin: 30px 0;
+            width: 100%;
+            counter-increment: figure-counter;
+        }
+        .figure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .figure-caption {
+            font-style: italic;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .figure-caption::before {
+            content: "Figure " counter(figure-counter) ": ";
+            font-weight: bold;
+            font-style: normal;
+        }
+        .subfigure-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 20px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .subfigure {
+            flex: 0 1 600px;
+            text-align: center;
+        }
+        .subfigure img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            min-width: 400px;
+        }
+        .subfigure .figure-caption {
+            font-style: italic;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .subfigure .figure-caption::before {
+            content: none;
+        }
+        .MathJax {
+            font-size: 1.1em !important;
+        }
+        .MathJax_Display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin: 1em 0;
+        }
+        .equation-container {
+            display: table;
+            width: 100%;
+            margin: 1.5em 0;
+        }
+        .equation-content {
+            display: table-cell;
+            width: 100%;
+        }
+        .figure-label::before {
+            content: "Figure " counter(figure-counter) ":";
+            font-weight: bold;
+            margin-right: 0.5em;
+        }
+        /* MathJax display styles */
+        .MJXc-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .MJXc-display::-webkit-scrollbar {
+            width: 5px;
+            height: 2px;
+        }
+        .MJXc-display::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .MJXc-display::-webkit-scrollbar-thumb {
+            background: #ddd;
+            visibility:hidden;
+        }
+        .MJXc-display:hover::-webkit-scrollbar-thumb {
+            visibility:visible;
+        }
+    </style>
+</head>
+<body>
+<h1>Pose Graph Optimization</h1>
+In the bundle adjustment problem, we want to optimize the camera poses and the 3D points by minimizing the reprojection error, which is denoted as,
+\begin{equation}
+\begin{aligned}
+& \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} \left( \frac{1}{2} \sum_{i=1}^{m} \sum_{j=1}^{n}\left\| \mathbf{x}_j - \mathbf{K} \mathbf{T}_{CWi} \mathbf{X}_{Wj} \right\|_2^2 \right) \\
+&= \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} \left( \frac{1}{2} \sum_{i=1}^{m} \sum_{j=1}^{n}\left\| \mathbf{x}_j - \pi (\mathbf{T}_{CWi}, \mathbf{X}_{Wj}) \right\|_2^2 \right) \\
+&= \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} f = \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} \left( \frac{1}{2} \sum_{i=1}^{m} \sum_{j=1}^{n} \mathbf{e}_{ij}^2 \right) \\
+\label{eq:reproj_error}
+\end{aligned}
+\end{equation}
+
+The variables we want to optimize are the camera poses and the 3D points, which are denoted as:
+\begin{equation}
+\mathbf{\mathcal{X}} = [\mathbf{T}_1, \ldots, \mathbf{T}_m, \mathbf{X}_1, \ldots, \mathbf{X}_n]^\top
+\end{equation}
+
+recall the Gaussian-Newton method for solving the non-linear least squares problem,
+\begin{equation}
+f(\mathbf{x} + \Delta\mathbf{x}) 
+\approx f(\mathbf{x}) + \mathbf{J}(\mathbf{x})^T \Delta\mathbf{x}
+\end{equation}
+
+\begin{equation}
+\Delta\mathbf{x}^* = 
+\arg\min_{\Delta\mathbf{x}} 
+\tfrac{1}{2}\|f(\mathbf{x}) + \mathbf{J}(\mathbf{x})^T\Delta\mathbf{x}\|^2
+\end{equation}
+
+\begin{equation}
+\mathbf{J}(\mathbf{x})^T\mathbf{J}(\mathbf{x})\Delta\mathbf{x} 
+= -\mathbf{J}(\mathbf{x})^T f(\mathbf{x})
+\end{equation}
+
+\begin{equation}
+\mathbf{H}\Delta\mathbf{x} = \mathbf{g}
+\end{equation}
+
+where $\mathbf{H}$ is the second-order approximation of the Hessian.
+
+Appy to this BA problem,
+\begin{equation}
+\begin{aligned}
+\frac{1}{2}\| f(\mathbf{\mathcal{X}} + \Delta\mathbf{\mathcal{X}})\|^2 
+&\approx \frac{1}{2}\sum_{i=1}^m \sum_{j=1}^n 
+\|\mathbf{F}_{ij}\Delta\boldsymbol{\xi}_i + \mathbf{E}_{ij}\Delta\mathbf{X}_{j}\|^2 \\
+&= \frac{1}{2}\|\mathbf{e} + \mathbf{F}\Delta \mathbf{\mathcal{X}_c} + \mathbf{E}\Delta\mathbf{\mathcal{X}_p}\|^2
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\mathbf{H}\Delta\mathbf{\mathcal{X}} = \mathbf{g}
+\end{equation}
+
+\begin{equation}
+\mathbf{J} = [\mathbf{F}~\mathbf{E}]
+\end{equation}
+
+\begin{equation}
+\mathbf{H} = \mathbf{J}^T\mathbf{J} = 
+\begin{bmatrix}
+\mathbf{F}^T\mathbf{F} & \mathbf{F}^T\mathbf{E} \\
+\mathbf{E}^T\mathbf{F} & \mathbf{E}^T\mathbf{E}
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+\mathbf{J}_{ij}(\mathbf{x}) = 
+( \mathbf{0}_{2\times6}, \ldots, 
+\tfrac{\partial \mathbf{e}_{ij}}{\partial \mathbf{T}_i}, 
+\mathbf{0}_{2\times6}, \ldots, 
+\tfrac{\partial \mathbf{e}_{ij}}{\partial \mathbf{p}_j}, 
+\mathbf{0}_{2\times3}, \ldots )
+\end{equation}
+
+\begin{equation}
+\mathbf{H} = \sum_{i,j} \mathbf{J}_{ij}^T \mathbf{J}_{ij}
+\end{equation}
+
+\begin{equation}
+\mathbf{H} =
+\begin{bmatrix}
+\mathbf{H}_{11} & \mathbf{H}_{12} \\
+\mathbf{H}_{21} & \mathbf{H}_{22}
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+\frac{1}{2}\sum \|\mathbf{e}_{ij}\|^2 
+= \tfrac{1}{2}(\|\mathbf{e}_{11}\|^2+\|\mathbf{e}_{12}\|^2+\|\mathbf{e}_{13}\|^2+
+\|\mathbf{e}_{14}\|^2+\|\mathbf{e}_{23}\|^2+\|\mathbf{e}_{25}\|^2+\|\mathbf{e}_{26}\|^2)
+\end{equation}
+
+\begin{equation}
+\mathbf{J}_{11} =
+\frac{\partial \mathbf{e}_{11}}{\partial \mathbf{x}} = 
+( \tfrac{\partial \mathbf{e}_{11}}{\partial \boldsymbol{\xi}_1},
+\mathbf{0}_{2\times6}, 
+\tfrac{\partial \mathbf{e}_{11}}{\partial \mathbf{p}_1},
+\mathbf{0}_{2\times3}, \ldots )
+\end{equation}
+
+\begin{equation}
+\begin{bmatrix}
+\mathbf{B} & \mathbf{E} \\
+\mathbf{E}^T & \mathbf{C}
+\end{bmatrix}
+\begin{bmatrix}
+\Delta\mathbf{x}_c \\ \Delta\mathbf{x}_p
+\end{bmatrix}
+=
+\begin{bmatrix}
+\mathbf{v} \\ \mathbf{w}
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+\begin{bmatrix}
+\mathbf{I} & -\mathbf{E}\mathbf{C}^{-1} \\
+\mathbf{0} & \mathbf{I}
+\end{bmatrix}
+\begin{bmatrix}
+\mathbf{B} & \mathbf{E} \\
+\mathbf{E}^T & \mathbf{C}
+\end{bmatrix}
+\begin{bmatrix}
+\Delta\mathbf{x}_c \\ \Delta\mathbf{x}_p
+\end{bmatrix}
+=
+\begin{bmatrix}
+\mathbf{I} & -\mathbf{E}\mathbf{C}^{-1} \\
+\mathbf{0} & \mathbf{I}
+\end{bmatrix}
+\begin{bmatrix}
+\mathbf{v} \\ \mathbf{w}
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+\begin{bmatrix}
+\mathbf{B} - \mathbf{E}\mathbf{C}^{-1}\mathbf{E}^T & \mathbf{0} \\
+\mathbf{E}^T & \mathbf{C}
+\end{bmatrix}
+\begin{bmatrix}
+\Delta\mathbf{x}_c \\ \Delta\mathbf{x}_p
+\end{bmatrix}
+=
+\begin{bmatrix}
+\mathbf{v} - \mathbf{E}\mathbf{C}^{-1}\mathbf{w} \\ \mathbf{w}
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+[\mathbf{B} - \mathbf{E}\mathbf{C}^{-1}\mathbf{E}^T]\Delta\mathbf{x}_c 
+= \mathbf{v} - \mathbf{E}\mathbf{C}^{-1}\mathbf{w}
+\end{equation}
+
