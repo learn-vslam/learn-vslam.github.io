@@ -30,7 +30,7 @@
     </script>
     <meta charset="UTF-8">
     <base target="_blank">
-    <title>Feature-based Visual Odometry</title>
+    <title>Direct Visual Odometry</title>
     <style>
         body {
             font-family: 'Lato', 'Google Sans', sans-serif;
@@ -165,7 +165,7 @@
 The previous introduced feature-based visual odometry methods are mostly always sparse due to the extraction of keypoint and point features in images. In sparse direct visual odometry, we also track sparse keypoints in images, but instead of using features, we use the pixel intensity values directly. This will apply the sparse optical flow we introcued previously, e.g. Lucas-Kanade method.
 
 <h2>Dense Direct Visual Odometry</h2>
-In a dense direct visual odometry, we ultilize the pixel intensity in the entire image. The first steps of direct VO is to have an initial guess of current reference depth map and camera pose. Then we warp the reference image to the target frame using the estimated camera pose and depth map, and compute the photometric loss between the warped image and the target image, to optimize the camera pose and depth map.
+In a dense direct visual odometry, we ultilize the pixel intensity in the entire image. The first steps of direct VO is to have an initial guess of current reference depth map $\hat{Z}$ and camera pose $\hat{\mathbf{T}} = [\hat{\mathbf{R}},\hat{\mathbf{t}}]$. Then we warp the reference image to the target frame using the estimated camera pose and depth map, and compute the photometric loss between the warped image and the target image, to optimize the camera pose and depth map.
 
 \begin{equation}
 \mathbf{X}_W = [\,X,\;Y,\;Z\,]^{\top}
@@ -185,17 +185,36 @@ In a dense direct visual odometry, we ultilize the pixel intensity in the entire
 \hat{Z}\,\mathbf{K}^{-1}\,\tilde{\mathbf{x}}_{\mathrm{im,ref}}
 \end{equation}
 
-This is an optimization problem to optimize the \textit{photometric loss}, which is then formulated as,
+This is an optimization problem to optimize the $\textit{photometric loss}$, which is then formulated as,
 \begin{equation}
 \min_{\mathbf{T}, \hat{Z}} J(\mathbf{T}, \hat{Z})  = \frac{1}{HW}\sum_{i=1}^{HW}
-\left|\,I_{\mathrm{target}}(i) - I_{\mathrm{warp}}(i)\,\right|
+\left|\,I_{\mathrm{target}}(i) - I_{\mathrm{warp}}(i)\,\right\|^2
 \end{equation}
 
-<h2>Sparse Direct Visual Odometry</h2>
-In sparse direct methods, we also optimize the camera pose to minimize the photometric error, but insteand of using the whole image or a alrge chunk of image, we only points from the keypoint detection. Here the photometric error is the brightness error of the two pixels of $\mathbf{X}$ projrected to two images:
+where $I$ denotes the pixel intensity of the image, $H$ and $W$ are the height and width of the image, respectively.
+
+For RGBD and stereo camera rig, it is easy to direct compute the depth map $\hat{Z}$ from the depth sensor. But for monocular cameras, the depth needs to be initialized from a random guess, which makes the optimization more challenging. <br>
+
+Let's first derive the gradient of the optimization objective with respect to the depth map $\hat{Z}$. We leave the gradient with respect to the camera pose $\hat{\mathbf{T}}$ for the next section.
+
+
+Define the error term as,
 \begin{equation}
-e = I_1(\mathbf{x}_1) - I_2(\mathbf{x}_2).
+e = I_{\mathrm{target}}(i) - I_{\mathrm{warp}}(i)
 \end{equation}
+
+\begin{equation}
+\begin{aligned}
+\frac{\partial e}{\partial \hat{Z}} &= - \frac{\partial I_{\mathrm{warp}}}{\partial \hat{Z}} = - \frac{\partial I_{\mathrm{warp}}}{\partial \mathbf{x}_{warp}}  \frac{\partial \mathbf{x}_{warp}}{\partial \hat{Z}} \\
+&= - \frac{\partial I_{\mathrm{warp}}}{\partial \mathbf{x}_{warp}} \left(\mathbf{K}\,[\,\hat{\mathbf{R}}\mid \hat{\mathbf{t}}\,]\,
+\,\mathbf{K}^{-1}\, \mathbf{x}_{\mathrm{ref}} \right)
+\end{aligned}
+\end{equation}
+
+Typical method of dense direct methods are LSD-SLAM and DSO. And in these methods only chunks of images which have high gradients will be used, such as corners and edges.
+
+<h2>Sparse Direct Visual Odometry</h2>
+In sparse direct methods, we also optimize the camera pose to minimize the photometric error, but insteand of using the whole image or a alrge chunk of image, we only use points from the keypoint and optical flow tracking (e.g. KLT). Here the photometric error is the brightness error of the two pixels of $\mathbf{X}$ projrected to two images:
 
 where,
 \begin{equation}
@@ -203,7 +222,7 @@ where,
 \begin{bmatrix}
 u_1 \\ v_1 \\ 1
 \end{bmatrix}
-= \frac{1}{Z_1} \mathbf{K}\mathbf{P}, 
+= \frac{1}{Z_1} \mathbf{K}\mathbf{X}, 
 \qquad
 \mathbf{x}_2 =
 \begin{bmatrix}
@@ -221,11 +240,11 @@ Similarly, the optimization is with respect to the $L_2$ norm of the error, taki
 
 The optimization is still based on the \textbf{constant brightness assumption}.  
 We assume that the grayscale of a spatial point imaged at various viewing points is constant.  
-If we have many (for example, $N$) space points $\mathbf{P}_i$, then the whole camera pose estimation problem becomes:
+If we have many (for example, $N$) space points $\mathbf{X}_i$, then the whole camera pose estimation problem becomes:
 
 \begin{equation}
 \min_{\mathbf{T}} J(\mathbf{T}) = \sum_{i=1}^{N} e_i^{\top} e_i, 
-\quad e_i = I_1(\mathbf{p}_{1,i}) - I_2(\mathbf{p}_{2,i}).
+\quad e_i = I_1(\mathbf{x}_{1,i}) - I_2(\mathbf{x}_{2,i}).
 \end{equation}
 
 The variable to be optimized here is the camera pose $\mathbf{T}$, instead of the motion of each feature point in the optical flow.  
@@ -293,4 +312,4 @@ This $2 \times 6$ matrix also appeared in the previous post. Therefore, we deriv
 \frac{\partial \mathbf{x}}{\partial \delta \mathbf{\xi}}.
 \end{equation}
 
-This Jacobian is used in to gradient-based optimization problem to update the camera pose.
+This Jacobian is used in to gradient-based optimization problem to update the camera pose. From the above equation we can see that that gradient is 0 when the pixel gradient is 0, which means feature-less regions will have 0 gradient, this explain again why LSD-SLAM and DSO choose regions with rich textures. But in sparse direct method, the pixels are computed from keypoints detections. One typical algorithm of sparse direct method is SVO.
