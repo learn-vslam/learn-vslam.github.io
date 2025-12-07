@@ -291,13 +291,15 @@ This Jacobian is used in to gradient-based optimization problem to update the ca
 Next let's discuss how depth is estimated, the estimation method may vary in different approaches. And we will discuss two approches here in this tutorial that displayed in 1. SVO, and 2. Direct Sparse Odometry (DSO). In practice, for numerical stability, it's often use the inverse depth, or disparity $d = \frac{1}{Z}$ to perform the computation.
 
 <h4> Bayesian optimization </h4>
-The first approach is to triangulate a depth given the pose previously optimized, and optimize alongside the ray based on epipolar geometry.
+The first approach is to compute a ray given one 2D point in frame $\mathcal{F}_{C2}$, denoted as $\mathbf{x}_2$, and previous optimized pose $\hat{\mathbf{T}}_{12}$. The projection of this ray, is the epipolar line in frame $\mathcal{F}_{C1}$. The depth is initialized with in a range $\left[d_i^{\min}, d_i^{\max} \right]$. 
 
 \begin{equation}
 p\!\left(d_i^{k} \mid d_i, \rho_i\right)
 = \rho_i\, \mathcal{N}\!\left(d_i^{k};\, d_i, \tau_i^{2}\right)
 + (1-\rho_i)\, U\!\left(d_i^{k};\, d_i^{\min}, d_i^{\max}\right),
 \end{equation}
+
+where $\pho_i$ is the probability that the measurement is an inlier. In this equation we have two distributions of the depth: Gaussian distribution: $\mathcal{N}(d_i^k; d_i, \tau_i^2)$ meeans that if the measurement is an inlier, it should be close to the true depth $d_i$, with variance $\tau_i^2$; and a uniform term: $\mathcal{U}(d_i^k; d_i^{\min}, d_i^{\max})$, meanning if the measurement is an outlier, it could be anywhere in the valid depth range. The variance term $\tau_i^2$ is computed by propagating a 1-pixel phometric matching error through the triangulation, which converts image-space uncertainty into depth-space uncertainty. The posterior of the depth $d_i$ is then updated recursively.
 
 <div class="figure">
     <img src="figs/svo_depth_opt.png" alt="SVO depth optimization illustration" style="width: 50%;">
@@ -312,7 +314,7 @@ Following the similar chain rule:
     \frac{\partial e}{\partial \hat{Z_2}} = -\frac{\partial I_{\text{wp}}}{\partial \mathbf{x}_{wp}} \cdot \frac{\partial \mathbf{x}_{wp}}{\partial \hat{\mathbf{X}}_{C1}} \cdot \frac{\partial \hat{\mathbf{X}}_{C1}}{\partial \hat{Z_2}} = \mathbf{J}_{\hat{Z}}
 \end{equation}
 
-The first two parts of the gradient $\frac{\partial e}{\partial \hat{Z_2}}$ has been discussed in the previous section. The derivative of $\hat{\mathbf{X}}_{C1}$ with respect to estimated depth in 2nd frame $\hat{Z}_2$:
+The first two parts of the gradient $\frac{\partial e}{\partial \hat{Z_2}}$ has been discussed in the previous section. The derivative of $\hat{\mathbf{X}}_{C1}$ with respect to estimated depth in 2nd frame $\hat{Z}_2$. A search is then conducted for a patch on the epipolar line in the image 1 that has the highest correlation with the reference patch in image 2.
 \begin{equation}
     \frac{\partial \hat{\mathbf{X}}_{C1}}{\partial \hat{Z}_2}= \hat{\mathbf{T}}_{12} \mathbf{K}^{-1} \mathbf{x}_{2}
 \end{equation}
