@@ -169,49 +169,51 @@
 \mathbf{X}_W = [\,X,\;Y,\;Z\,]^{\top}
 \end{equation} -->
 
-Given two camera frames $\mathcal{F}_{ref}$ and $\mathcal{F}_{tgt}$, we find an implicit 2D correspondence $\mathbf{x}_{ref}$ and $\mathbf{x}_{tgt}$ with estimated depth in reference frame, denoted as $\hat{Z}_{ref}$ or just $\hat{Z}$, and transform of these two frames $\hat{\mathbf{T}}_{tgt\_ref}$ (equivalent to $\hat{\mathbf{T}}_{CW}$, reference frame expressed in target frame).
+Given two camera frames $\mathcal{F}_{C1}$ and $\mathcal{F}_{C2}$, or target and source respectively. We could find an implicit 2D correspondence $\mathbf{x}_{1}$ and $\mathbf{x}_{2}$ with estimated depth in the 2nd camera frame, denoted as $\hat{Z}_{2}$, and transform of these two frames $\hat{\mathbf{T}}_{12}$ (transform 3D point expressed in the 2nd frame to point expressed in the 1st frame).
 
-Based on a estimated depth $\hat{Z}$, we can project the 2D point and get the estimated 3D point $\hat{\mathbf{X}}_C$ in camera frame,
+Based on a estimated depth $\hat{Z_2}$, we can project the 2D point and get the estimated 3D point $\hat{\mathbf{X}}_{C2}$ in camera frame,
 \begin{equation}
-\hat{\mathbf{X}}_C = \hat{Z}\,\mathbf{K}^{-1}\ \mathbf{x}_{ref}
+\hat{\mathbf{X}}_{C2} = \pi ^{-1} (\hat{Z_2}, \mathbf{K}, \mathbf{x}_{2}) = \hat{Z_2}\,\mathbf{K}^{-1}\ \mathbf{x}_{2} = [X_{2}, Y_{2}, Z_{2}]^\top
 \end{equation}
 
-Then transform the point based on estimated pose,
+Then transform the point based on estimated pose to the 1st frame,
 \begin{equation}
-\hat{\mathbf{X}}_{W} = \hat{\mathbf{T}}_{tgt\_ref} \left( \hat{Z}\,\mathbf{K}^{-1}\ \mathbf{x}_{ref} \right)
+\hat{\mathbf{X}}_{C1} = \hat{\mathbf{T}}_{12} \hat{\mathbf{X}}_{C2} = \hat{\mathbf{T}}_{12} \left( \hat{Z_2}\,\mathbf{K}^{-1}\ \mathbf{x}_{2} \right) = [X_{1}, Y_{1}, Z_{1}]^\top
 \end{equation}
 
-and then the warped 2D image point,
+and then get the warped 2D image point,
 \begin{equation}
-\mathbf{x}_{wp} = \mathbf{K} \hat{\mathbf{T}}_{tgt\_ref} \left(\hat{Z} \mathbf{K}^{-1} \mathbf{x}_{ref} \right)
+\mathbf{x}_{wp} = \pi \left( \mathbf{K}, \hat{\mathbf{X}}_{C1} \right) = \frac{\mathbf{K} \hat{\mathbf{X}}_{C1}}{Z_{C1}} = \frac{ \mathbf{K} \hat{\mathbf{T}}_{12} \left(\hat{Z_2} \mathbf{K}^{-1} \mathbf{x}_{2} \right)}{\left[ \hat{\mathbf{T}}_{12} \left(\hat{Z_2} \mathbf{K}^{-1} \mathbf{x}_{2} \right) \right]_3}
 \end{equation}
 
-If the estimated depth in ref frame $\hat{Z}$, and the estimated pose $\hat{\mathbf{T}}_{tgt\_ref}$ are all perfectly accurate, then the warped image point $\mathbf{x}_{wp}$ should exactly align with the 2D correpondence of $\mathbf{x}_{ref}$, hence $\mathbf{x}_{tgt}$. But this is not the case, then we have an optimization problem to optimize $\hat{Z}$ and $\hat{\mathbf{T}}_{tgt\_ref}$, based on the pixel intensity of the points $\mathbf{x}_{wp}$ and $\mathbf{x}_{tgt}$, denoted as $I_{\mathrm{wp}}$, $I_{\mathrm{tgt}}$, respectively. The loss function is called $\textit{photometric loss}$, which is formulated as,
+$\left[ \cdot \right]_3$ means the 3rd element of a vector.
+
+If the estimated depth in ref frame $\hat{Z_2}$, and the estimated pose $\hat{\mathbf{T}}_{12}$ are all perfectly accurate, then the warped image point $\mathbf{x}_{wp}$ should exactly align with the 2D correpondence of $\mathbf{x}_{2}$, hence $\mathbf{x}_{1}$. But this is not the case, then we have an optimization problem to optimize $\hat{Z_2}$ and $\hat{\mathbf{T}}_{12}$, based on the pixel intensity of the points $\mathbf{x}_{wp}$ and $\mathbf{x}_{1}$, denoted as $I_{\mathrm{wp}}$, $I_{\mathrm{1}}$, respectively. The loss function is called $\textit{photometric loss}$, which is formulated as,
 \begin{equation}
 J = \frac{1}{N}\sum_{i=1}^{N}
-\left\| I_{\mathrm{tgt}}(i) - I_{\mathrm{wp}}(i)\,\right\|^2 = \frac{1}{N}\sum_{i=1}^{N} \left\| e_i \right\|^2
+\left\| I_{\mathrm{1}}(i) - I_{\mathrm{wp}}(i)\,\right\|^2 = \frac{1}{N}\sum_{i=1}^{N} \left\| e_i \right\|^2
 \end{equation}
 
-<!-- \min_{ \{ \hat{\mathbf{T}}_{tgt\_ref}, \hat{Z} \} }  -->
+<!-- \min_{ \{ \hat{\mathbf{T}}_{tgt\_ref}, \hat{Z_2} \} }  -->
 
 where $N$ denotes the total number of points.
 
-For RGBD and stereo camera rig, it is easy to direct compute the depth map $\hat{Z}$ from the depth sensor. But for monocular cameras, the depth needs to be estimated. <br>
+For RGBD and stereo camera rig, it is easy to direct compute the depth map $\hat{Z_2}$ from the depth sensor. But for monocular cameras, the depth needs to be estimated. <br>
 
-<h3> pose and depth optimization </h3>
- We first derive the gradient of error term $e$ w.r.t pose, assuming constant depth $\hat{Z}$,
+<h3> pose optimization </h3>
+ We first derive the gradient of error term $e$ w.r.t pose, assuming constant depth $\hat{Z_2}$,
 
 where,
 \begin{equation}
-\mathbf{x}_{ref}= [u_1, v_1, 1 ]^\top
+\mathbf{x}_{2}= [u_2, v_2, 1 ]^\top
 \qquad
-\mathbf{x}_{tgt} = [u_2, v_2, 1 ]^\top
+\mathbf{x}_{1} = [u_1, v_1, 1 ]^\top
 \end{equation}
 
 Consider the left perturbation model of Lie algebra, using the first-order Taylor expansion:
-Here we denote the transformation $\hat{\mathbf{T}}_{tgt\_ref}$ simply as $\hat{\mathbf{T}}$,
+Here we denote the transformation $\hat{\mathbf{T}}_{12}$,
 \begin{equation}
-e(\mathbf{\hat{T}}) = I_{\mathrm{tgt}}(\mathbf{x}_{tgt}) - I_{\mathrm{wp}}(\mathbf{x}_{wp})
+e(\mathbf{\hat{T}_{12}}) = I_{\mathrm{1}}(\mathbf{x}_{1}) - I_{\mathrm{wp}}(\mathbf{x}_{wp})
 \end{equation}
 
 Then we derive the gradient of this error term w.r.t. the pose, but instead of computing the derivative on SE(3), we only do it in its lie algebra $\mathfrak{se}(3)$, hence,
@@ -219,28 +221,28 @@ Then we derive the gradient of this error term w.r.t. the pose, but instead of c
 \begin{equation}
 \frac{\partial e}{\partial \delta \boldsymbol{\xi}}
 = - \frac{\partial I_{wp}}{\partial \mathbf{x}_{wp}}
-\frac{\partial \mathbf{x}_{wp}}{\partial \hat{\mathbf{X}}_C}
-\frac{\partial \hat{\mathbf{X}}_C}{\partial \delta \boldsymbol{\xi}},
+\frac{\partial \mathbf{x}_{wp}}{\partial \hat{\mathbf{X}}_{C1}}
+\frac{\partial \hat{\mathbf{X}}_{C1}}{\partial \delta \boldsymbol{\xi}},
 \end{equation}
 
 where $\delta \boldsymbol{\xi} \in \mathfrak{se}(3)$ is the left disturbance of $\mathbf{\hat{T}}$, where
 
 $\frac{\partial I_{wp}}{\partial \mathbf{x}_{wp}}$ is the grayscale gradient at pixel coordinate $\mathbf{x}_{wp}$.
 
-$\frac{\partial \mathbf{x}_{wp}}{\partial \hat{\mathbf{X}}_C}$ is the derivative of the projection equation with respect to the three-dimensional point in the camera frame. Let $\hat{\mathbf{X}}_C = [X, Y, Z]^{\top}$:
+$\frac{\partial \mathbf{x}_{wp}}{\partial \hat{\mathbf{X}}_{C1}}$ is the derivative of the projection equation with respect to the three-dimensional point in the camera frame. Let $\hat{\mathbf{X}}_{C2} = [X_2, Y_2, Z_2]^{\top}$:
 \begin{equation}
-\frac{\partial \mathbf{x}_{wp}}{\partial \hat{\mathbf{X}}_C} =
+\frac{\partial \mathbf{x}_{wp}}{\partial \hat{\mathbf{X}}_{C1}} =
 \begin{bmatrix}
-\frac{f_x}{Z} & 0 & -\frac{f_x X}{Z^2} \\
-0 & \frac{f_y}{Z} & -\frac{f_y Y}{Z^2}
+\frac{f_x}{Z_2} & 0 & -\frac{f_x X_2}{Z_2^2} \\
+0 & \frac{f_y}{Z_2} & -\frac{f_y Y_2}{Z_2^2}
 \end{bmatrix}.
 \end{equation}
 
-$\frac{\partial \hat{\mathbf{X}}_C}{\partial \delta \boldsymbol{\xi}}$ is the derivative of the transformed three-dimensional point with respect to the transformation, which was introduced before as,
+$\frac{\partial \hat{\mathbf{X}}_{C1}}{\partial \delta \boldsymbol{\xi}}$ is the derivative of the transformed three-dimensional point with respect to the transformation, which was introduced before as,
 
 \begin{equation}
-\frac{\partial \hat{\mathbf{X}}_C}{\partial \delta \boldsymbol{\xi}} =
-[\mathbf{I}, -(\hat{\mathbf{X}}_C)^{\wedge}].
+\frac{\partial \hat{\mathbf{X}}_{C1}}{\partial \delta \boldsymbol{\xi}} =
+[\mathbf{I}, -(\hat{\mathbf{X}}_{C2})^{\wedge}].
 \end{equation}
 
 We can combine them together as:
@@ -248,23 +250,33 @@ We can combine them together as:
 \begin{equation}
 \frac{\partial \mathbf{x}_{wp}}{\partial \delta \boldsymbol{\xi}} =
 \begin{bmatrix}
-\frac{f_x}{Z} & 0 & -\frac{f_x X}{Z^2} & -\frac{f_x X Y}{Z^2} & f_x + \frac{f_x X^2}{Z^2} & -\frac{f_x Y}{Z} \\
-0 & \frac{f_y}{Z} & -\frac{f_y Y}{Z^2} & -f_y - \frac{f_y Y^2}{Z^2} & \frac{f_y X Y}{Z^2} & \frac{f_y X}{Z}
+\frac{f_x}{Z_2} & 0 & -\frac{f_x X_2}{Z_2^2} & -\frac{f_x X_2 Y_2}{Z_2^2} & f_x + \frac{f_x X_2^2}{Z_2^2} & -\frac{f_x Y_2}{Z_2} \\
+0 & \frac{f_y}{Z_2} & -\frac{f_y Y_2}{Z_2^2} & -f_y - \frac{f_y Y_2^2}{Z_2^2} & \frac{f_y X_2 Y_2}{Z_2^2} & \frac{f_y X_2}{Z_2}
 \end{bmatrix}.
 \end{equation}
 
 This $2 \times 6$ matrix also appeared in the previous post. Therefore, we derive the Jacobian of residual with respect to Lie algebra as:
 
 \begin{equation}
-\mathbf{J} = - \frac{\partial I_{wp}}{\partial \mathbf{x}_{wp}}
+\mathbf{J}_{\boldsymbol{\xi}} = - \frac{\partial I_{wp}}{\partial \mathbf{x}_{wp}}
 \frac{\partial \mathbf{x}_{wp}}{\partial \delta \boldsymbol{\xi}}.
 \end{equation}
 
-Based on Gauss-Newton methods, the incremental update of the pose is given as,
+Based on the Gauss-Newton method, the incremental update of the pose is given as,
 \begin{equation}
-\mathbf{J}^\top \mathbf{J} \delta \boldsymbol{\xi} = \mathbf{J}^\top e \\
-\delta \boldsymbol{\xi} = (\mathbf{J}^\top \mathbf{J} )^{-1} \mathbf{J}^\top e
+\mathbf{J}_{\boldsymbol{\xi}}^\top \mathbf{J}_{\boldsymbol{\xi}} \delta \boldsymbol{\xi} = \mathbf{J}_{\boldsymbol{\xi}}^\top e \\
 \end{equation}
+
+the incremental update is solved as,
+\begin{equation}
+\begin{aligned}
+\delta \boldsymbol{\xi} &= (\mathbf{J}_{\boldsymbol{\xi}}^\top \mathbf{J}_{\boldsymbol{\xi}} )^{-1} \mathbf{J}_{\boldsymbol{\xi}} ^\top e \\
+&= (\mathbf{H}_{\boldsymbol{\xi}})^{-1} \mathbf{J}_{\boldsymbol{\xi}}^\top e
+\end{aligned}
+\end{equation}
+
+where $\mathbf{H}_{\boldsymbol{\xi}}$ is the approximated Hessin. <br>
+
 
 Following the left-multiplicative composition rule, The pose is then updated as,
 \begin{equation} 
@@ -273,19 +285,53 @@ Following the left-multiplicative composition rule, The pose is then updated as,
 
 where $k$ is the iteration step. <br>
 
-This Jacobian is used in to gradient-based optimization problem to update the camera pose. From the above equation we can see that that gradient is 0 when the pixel gradient is 0, which means feature-less regions will have 0 gradient, this explain why classical direct methods like LSD-SLAM and DSO choose image regions with rich textures. 
+This Jacobian is used in to gradient-based optimization problem to update the camera pose. From the above equation we can see that that gradient is 0 when the pixel gradient is 0, which means feature-less regions will have 0 gradient, this explain why classical direct methods like LSD-SLAM and DSO choose image regions with rich textures. <br>
 
-<!-- Let's first derive the gradient of the optimization objective with respect to the depth map $\hat{Z}$. We leave the gradient with respect to the camera pose $\hat{\mathbf{T}}$ for the next section.
+<h3> Depth optimization </h3>
+Next let's discuss how depth is estimated, the estimation method may vary in different approaches. And we will discuss two approches here in this tutorial that displayed in 1. SVO, and 2. Direct Sparse Odometry (DSO). In practice, for numerical stability, it's often use the inverse depth, or disparity $d = \frac{1}{Z}$ to perform the computation.
+
+<h4> Bayesian optimization </h4>
+The first approach is to triangulate a depth given the pose previously optimized, and optimize alongside the ray based on epipolar geometry.
 
 \begin{equation}
-\begin{aligned}
-\frac{\partial e}{\partial \hat{Z}} &= - \frac{\partial I_{\mathrm{warp}}}{\partial \hat{Z}} = - \frac{\partial I_{\mathrm{warp}}}{\partial \mathbf{x}_{warp}}  \frac{\partial \mathbf{x}_{warp}}{\partial \hat{Z}} \\
-&= - \frac{\partial I_{\mathrm{warp}}}{\partial \mathbf{x}_{warp}} \left(\mathbf{K}\,[\,\hat{\mathbf{R}}\mid \hat{\mathbf{t}}\,]\,
-\,\mathbf{K}^{-1}\, \mathbf{x}_{\mathrm{ref}} \right)
-\end{aligned}
+p\!\left(d_i^{k} \mid d_i, \rho_i\right)
+= \rho_i\, \mathcal{N}\!\left(d_i^{k};\, d_i, \tau_i^{2}\right)
++ (1-\rho_i)\, U\!\left(d_i^{k};\, d_i^{\min}, d_i^{\max}\right),
 \end{equation}
 
-Typical method of dense direct methods are LSD-SLAM and DSO. And in these methods only chunks of images which have high gradients will be used, such as corners and edges. -->
+<div class="figure">
+    <img src="figs/svo_depth_opt.png" alt="SVO depth optimization illustration" style="width: 50%;">
+    <div class="figure-caption">Illustration of depth optimization in SVO. (figure from the SVO v1 paper [1]) </div>
+</div>
+
+<h4> Gradient-based optimization </h4>
+The SE(3) pose is optimized via gradient-based method like Gauss-Newton. The depth, can also be optimized in a similar way. Let's derive the gradient of the optimization objective with respect to the depth map $\hat{Z_2}$.
+
+Following the similar chain rule:
+\begin{equation}
+    \frac{\partial e}{\partial \hat{Z_2}} = -\frac{\partial I_{\text{wp}}}{\partial \mathbf{x}_{wp}} \cdot \frac{\partial \mathbf{x}_{wp}}{\partial \hat{\mathbf{X}}_{C1}} \cdot \frac{\partial \hat{\mathbf{X}}_{C1}}{\partial \hat{Z_2}} = \mathbf{J}_{\hat{Z}}
+\end{equation}
+
+The first two parts of the gradient $\frac{\partial e}{\partial \hat{Z_2}}$ has been discussed in the previous section. The derivative of $\hat{\mathbf{X}}_{C1}$ with respect to estimated depth in 2nd frame $\hat{Z}_2$:
+\begin{equation}
+    \frac{\partial \hat{\mathbf{X}}_{C1}}{\partial \hat{Z}_2}= \hat{\mathbf{T}}_{12} \mathbf{K}^{-1} \mathbf{x}_{2}
+\end{equation}
+
+<!-- Typical method of (semi-)dense direct methods are LSD-SLAM and DSO. And in these methods only chunks of images which have high gradients will be used, such as corners and edges. -->
+
+Based on Gauss-Newton, the incremental update of depth is given as:
+\begin{equation}
+    \mathbf{J}_{\hat{Z}}^\top \mathbf{J}_{\hat{Z}} \, \delta\hat{Z} = \mathbf{J}_{\hat{Z}}^\top \mathbf{e}
+\end{equation}
+
+\begin{equation}
+    \delta\hat{Z} = \left( \mathbf{J}_{\hat{Z}}^\top \mathbf{J}_{\hat{Z}} \right)^{-1} \mathbf{J}_{\hat{Z}}^\top \mathbf{e}
+\end{equation}
+
+The depth is then updated as:
+\begin{equation}
+    \hat{Z}_{k+1} = \hat{Z}_k - \delta\hat{Z}
+\end{equation}
 
 
 <h2>Sparse Direct Visual Odometry</h2>
@@ -294,4 +340,13 @@ In sparse direct methods, we also optimize the camera pose to minimize the photo
 The previous introduced feature-based visual odometry methods are mostly always sparse due to the extraction of keypoint and point features in images. In sparse direct visual odometry, we also track sparse keypoints in images, but instead of using features, we use the pixel intensity values directly. This will apply the sparse optical flow we introcued previously, e.g. Lucas-Kanade method.
 
 <h2>Dense Direct Visual Odometry</h2>
-In a dense direct visual odometry, we ultilize the pixel intensity in the entire image. The first steps of direct VO is to have an initial guess of current reference depth map $\hat{Z}$ and camera pose $\hat{\mathbf{T}} = [\hat{\mathbf{R}},\hat{\mathbf{t}}]$. Then we warp the reference image to the target frame using the estimated camera pose and depth map, and compute the photometric loss between the warped image and the target image, to optimize the camera pose and depth map.
+In a dense direct visual odometry, we ultilize the pixel intensity in the entire image. The first steps of direct VO is to have an initial guess of current reference depth map $\hat{Z_2}$ and camera pose $\hat{\mathbf{T}} = [\hat{\mathbf{R}},\hat{\mathbf{t}}]$. Then we wp the reference image to the target frame using the estimated camera pose and depth map, and compute the photometric loss between the warped image and the target image, to optimize the camera pose and depth map.
+
+
+<h2>References</h2>
+<ol>
+    <li>Visual SLAM: From Theory to Practice, by Xiang Gao, Tao Zhang, Qinrui Yan and Yi Liu</li>
+    <li>[1] SVO: Fast Semi-Direct Monocular Visual Odometry, by Christian Forster, Matia Pizzoli, Davide Scaramuzza, ICRA 2014</li>
+    <li>[2] LSD-SLAM: Large-Scale Direct Monocular SLAM, by Jakob Engel and Thomas Schops and Daniel Cremers, ECCV 2014</li>
+    <li>[3] Direct Sparse Odometry, by Jakob Engel, Vladlen Koltun, Daniel Cremers, arXiv:1607.02565 2016</li>
+</ol>
