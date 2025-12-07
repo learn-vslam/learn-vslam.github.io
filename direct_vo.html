@@ -295,14 +295,14 @@ The first approach is to compute a ray given one 2D point in frame $\mathcal{F}_
 
 \begin{equation}
 p\!\left(d_i^{k} \mid d_i, \rho_i\right)
-= \rho_i\, \mathcal{N}\!\left(d_i^{k};\, d_i, \tau_i^{2}\right)
-+ (1-\rho_i)\, U\!\left(d_i^{k};\, d_i^{\min}, d_i^{\max}\right),
+= \rho_i\, \mathcal{N} \left(d_i^{k};\, d_i, \tau_i^{2}\right)
++ (1-\rho_i)\, \mathcal{U} \left(d_i^{k};\, d_i^{\min}, d_i^{\max}\right),
 \end{equation}
 
-where $\pho_i$ is the probability that the measurement is an inlier. In this equation we have two distributions of the depth: Gaussian distribution: $\mathcal{N}(d_i^k; d_i, \tau_i^2)$ meeans that if the measurement is an inlier, it should be close to the true depth $d_i$, with variance $\tau_i^2$; and a uniform term: $\mathcal{U}(d_i^k; d_i^{\min}, d_i^{\max})$, meanning if the measurement is an outlier, it could be anywhere in the valid depth range. The variance term $\tau_i^2$ is computed by propagating a 1-pixel phometric matching error through the triangulation, which converts image-space uncertainty into depth-space uncertainty. The posterior of the depth $d_i$ is then updated recursively.
+where $\rho_i$ is the probability that the measurement is an inlier. In this equation we use two distributions to model the depth uncertainty: Gaussian distribution $\mathcal{N}(d_i^k; d_i, \tau_i^2)$ meeans that if the measurement is an inlier, it should be close to the true depth $d_i$, with variance $\tau_i^2$; and a uniform distribution $\mathcal{U}(d_i^k; d_i^{\min}, d_i^{\max})$, meaning if the measurement is an outlier, it could be anywhere in the valid depth range. The variance term $\tau_i^2$ is computed by propagating a 1-pixel phometric matching error through the triangulation, which converts image-space uncertainty into depth-space uncertainty. The posterior of the depth $d_i$ is then updated recursively.
 
 <div class="figure">
-    <img src="figs/svo_depth_opt.png" alt="SVO depth optimization illustration" style="width: 50%;">
+    <img src="figs/svo_depth_opt.png" alt="SVO depth optimization illustration" style="width: 60%;">
     <div class="figure-caption">Illustration of depth optimization in SVO. (figure from the SVO v1 paper [2]) </div>
 </div>
 
