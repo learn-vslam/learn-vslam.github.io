@@ -159,7 +159,10 @@
     </style>
 </head>
 <body>
-<h1>Pose Graph Optimization</h1>
+<h1>Pose Graph Optimization 1</h1>
+From this tutorial, we will start to explore the back-end of visual SLAM. We will start from the optimization-based methods, which is usually formulated as a pose graph optimization problem.
+
+<h2>The sparse bundle adjustment (BA) problem</h2>
 In the bundle adjustment problem, we want to optimize the camera poses and the 3D points by minimizing the reprojection error, which is denoted as,
 \begin{equation}
 \begin{aligned}
@@ -175,36 +178,38 @@ The variables we want to optimize are the camera poses and the 3D points, which 
 \mathbf{\mathcal{X}} = [\mathbf{T}_1, \ldots, \mathbf{T}_m, \mathbf{X}_1, \ldots, \mathbf{X}_n]^\top
 \end{equation}
 
-recall the Gaussian-Newton method for solving the non-linear least squares problem,
+Recall the Gaussian-Newton method for solving the non-linear least squares problem, where we linearlize the objective function $f(\mathbf{x})$, 
 \begin{equation}
 f(\mathbf{x} + \Delta\mathbf{x}) 
-\approx f(\mathbf{x}) + \mathbf{J}(\mathbf{x})^T \Delta\mathbf{x}
+\approx f(\mathbf{x}) + \mathbf{J}(\mathbf{x})^\top \Delta\mathbf{x}
 \end{equation}
 
+and the optimal solution can be found by solving,
 \begin{equation}
 \Delta\mathbf{x}^* = 
 \arg\min_{\Delta\mathbf{x}} 
-\tfrac{1}{2}\|f(\mathbf{x}) + \mathbf{J}(\mathbf{x})^T\Delta\mathbf{x}\|^2
+\tfrac{1}{2}\|f(\mathbf{x}) + \mathbf{J}(\mathbf{x})^\top \Delta\mathbf{x}\|^2
 \end{equation}
 
+The optimal $\mathbf{x}$ is solved with its normal equation,
 \begin{equation}
-\mathbf{J}(\mathbf{x})^T\mathbf{J}(\mathbf{x})\Delta\mathbf{x} 
-= -\mathbf{J}(\mathbf{x})^T f(\mathbf{x})
+\mathbf{J}(\mathbf{x})^\top \mathbf{J}(\mathbf{x})\Delta\mathbf{x} 
+= -\mathbf{J}(\mathbf{x})^\top f(\mathbf{x})
 \end{equation}
 
 \begin{equation}
 \mathbf{H}\Delta\mathbf{x} = \mathbf{g}
 \end{equation}
 
-where $\mathbf{H}$ is the second-order approximation of the Hessian.
+where $\mathbf{H}$ is the second-order approximation of the Hessian. <br><br>
 
-Appy to this BA problem,
+Apply this to this BA problem, here we just $\mathbf{J}_C$ to denote the Jacobian over pose and $\mathbf{J}_P$ the Jacobian over 3D landmark points,
 \begin{equation}
 \begin{aligned}
 \frac{1}{2}\| f(\mathbf{\mathcal{X}} + \Delta\mathbf{\mathcal{X}})\|^2 
 &\approx \frac{1}{2}\sum_{i=1}^m \sum_{j=1}^n 
-\|\mathbf{F}_{ij}\Delta\boldsymbol{\xi}_i + \mathbf{E}_{ij}\Delta\mathbf{X}_{j}\|^2 \\
-&= \frac{1}{2}\|\mathbf{e} + \mathbf{F}\Delta \mathbf{\mathcal{X}_c} + \mathbf{E}\Delta\mathbf{\mathcal{X}_p}\|^2
+\|\mathbf{e}_{ij} + {\mathbf{J}_C}_{ij}\Delta\boldsymbol{\xi}_i + {\mathbf{J}_P}_{ij}\Delta\mathbf{X}_{j}\|^2 \\
+&= \frac{1}{2}\|\mathbf{e} + \mathbf{J}_C\Delta \mathbf{\mathcal{X}_c} + \mathbf{J}^X\Delta\mathbf{\mathcal{X}_p}\|^2
 \end{aligned}
 \end{equation}
 
@@ -212,39 +217,45 @@ Appy to this BA problem,
 \mathbf{H}\Delta\mathbf{\mathcal{X}} = \mathbf{g}
 \end{equation}
 
+The Jacobian which combines $\mathbf{J}_C$ and $\mathbf{J}_P$ is denoted as,
 \begin{equation}
-\mathbf{J} = [\mathbf{F}~\mathbf{E}]
+\mathbf{J} = [\mathbf{J}_C, \mathbf{J}_P]^\top
 \end{equation}
 
+And and approximated Hessian matrix is,
 \begin{equation}
-\mathbf{H} = \mathbf{J}^T\mathbf{J} = 
+\begin{aligned}
+\mathbf{H} = \mathbf{J}^\top \mathbf{J} &= 
 \begin{bmatrix}
-\mathbf{F}^T\mathbf{F} & \mathbf{F}^T\mathbf{E} \\
-\mathbf{E}^T\mathbf{F} & \mathbf{E}^T\mathbf{E}
+{\mathbf{J}_C}^\top \mathbf{J}_C & {\mathbf{J}_C}^\top \mathbf{J}_P \\
+{\mathbf{J}_P}^\top \mathbf{J}_C & {\mathbf{J}_P}^\top \mathbf{J}_P
+\end{bmatrix} \\
+&= \begin{bmatrix}
+\mathbf{H}_{CC} & \mathbf{H}_{CP} \\
+\mathbf{H}_{PC} & \mathbf{H}_{PP}
 \end{bmatrix}
+\end{aligned}
 \end{equation}
 
+<h2>Sparsity of the Hessian structure</h2>
+In visual SLAM, the local observability between camera poses and 3D points makes the Jacobian of the reprojection error term $\mathbf{e}$ w.r.t $\mathbf{\mathcal{X}}$ sparse. Think about a camera moving in a scene, only a subset of the 3D point map is observed by a subset of camera pose trajectory. So consider error term $\mathbf{e}_{ij}$ at the $i$-th pose and $j$-th 3D point, the Jacobian $\mathbf{J}_{ij}(\mathbf{\mathcal{X}})$ is derived as,
+
 \begin{equation}
-\mathbf{J}_{ij}(\mathbf{x}) = 
-( \mathbf{0}_{2\times6}, \ldots, 
+\mathbf{J}_{ij}(\mathbf{\mathcal{X}}) = 
+[\mathbf{0}_{2\times6}, \ldots, 
 \tfrac{\partial \mathbf{e}_{ij}}{\partial \mathbf{T}_i}, 
 \mathbf{0}_{2\times6}, \ldots, 
 \tfrac{\partial \mathbf{e}_{ij}}{\partial \mathbf{p}_j}, 
-\mathbf{0}_{2\times3}, \ldots )
+\mathbf{0}_{2\times3}, \ldots]^\top
 \end{equation}
 
+Thus the Hessian matrix $\mathbf{H}$ is sparse, which can be written as the summation of the Jacobian of each error term,
 \begin{equation}
-\mathbf{H} = \sum_{i,j} \mathbf{J}_{ij}^T \mathbf{J}_{ij}
+\mathbf{H} = \sum_{i,j} \mathbf{J}_{ij}^\top \mathbf{J}_{ij}
 \end{equation}
 
-\begin{equation}
-\mathbf{H} =
-\begin{bmatrix}
-\mathbf{H}_{11} & \mathbf{H}_{12} \\
-\mathbf{H}_{21} & \mathbf{H}_{22}
-\end{bmatrix}
-\end{equation}
-
+<h3>Hessian sparsity example</h3>
+We will use a concrete example to illustrate the sparsity of the Hessian matrix. Consider the following error term,
 \begin{equation}
 \frac{1}{2}\sum \|\mathbf{e}_{ij}\|^2 
 = \tfrac{1}{2}(\|\mathbf{e}_{11}\|^2+\|\mathbf{e}_{12}\|^2+\|\mathbf{e}_{13}\|^2+
@@ -260,10 +271,12 @@ Appy to this BA problem,
 \mathbf{0}_{2\times3}, \ldots )
 \end{equation}
 
+
+<h2>Schur Complement</h2>
 \begin{equation}
 \begin{bmatrix}
-\mathbf{B} & \mathbf{E} \\
-\mathbf{E}^T & \mathbf{C}
+\mathbf{B} & \mathbf{J}_P \\
+{\mathbf{J}_P}^\top & \mathbf{C}
 \end{bmatrix}
 \begin{bmatrix}
 \Delta\mathbf{x}_c \\ \Delta\mathbf{x}_p
@@ -276,19 +289,19 @@ Appy to this BA problem,
 
 \begin{equation}
 \begin{bmatrix}
-\mathbf{I} & -\mathbf{E}\mathbf{C}^{-1} \\
+\mathbf{I} & - \mathbf{J}_P \mathbf{C}^{-1} \\
 \mathbf{0} & \mathbf{I}
 \end{bmatrix}
 \begin{bmatrix}
-\mathbf{B} & \mathbf{E} \\
-\mathbf{E}^T & \mathbf{C}
+\mathbf{B} & \mathbf{J}_P \\
+{\mathbf{J}_P}^\top & \mathbf{C}
 \end{bmatrix}
 \begin{bmatrix}
 \Delta\mathbf{x}_c \\ \Delta\mathbf{x}_p
 \end{bmatrix}
 =
 \begin{bmatrix}
-\mathbf{I} & -\mathbf{E}\mathbf{C}^{-1} \\
+\mathbf{I} & -\mathbf{J}_P \mathbf{C}^{-1} \\
 \mathbf{0} & \mathbf{I}
 \end{bmatrix}
 \begin{bmatrix}
@@ -298,20 +311,19 @@ Appy to this BA problem,
 
 \begin{equation}
 \begin{bmatrix}
-\mathbf{B} - \mathbf{E}\mathbf{C}^{-1}\mathbf{E}^T & \mathbf{0} \\
-\mathbf{E}^T & \mathbf{C}
+\mathbf{B} - \mathbf{J}_P \mathbf{C}^{-1} {\mathbf{J}_P}^\top & \mathbf{0} \\
+{\mathbf{J}_P}^\top & \mathbf{C}
 \end{bmatrix}
 \begin{bmatrix}
 \Delta\mathbf{x}_c \\ \Delta\mathbf{x}_p
 \end{bmatrix}
 =
 \begin{bmatrix}
-\mathbf{v} - \mathbf{E}\mathbf{C}^{-1}\mathbf{w} \\ \mathbf{w}
+\mathbf{v} - \mathbf{J}_P \mathbf{C}^{-1} \mathbf{w} \\ \mathbf{w}
 \end{bmatrix}
 \end{equation}
 
 \begin{equation}
-[\mathbf{B} - \mathbf{E}\mathbf{C}^{-1}\mathbf{E}^T]\Delta\mathbf{x}_c 
-= \mathbf{v} - \mathbf{E}\mathbf{C}^{-1}\mathbf{w}
+[\mathbf{B} - \mathbf{J}_P \mathbf{C}^{-1} {\mathbf{J}_P}^\top] \Delta\mathbf{x}_c 
+= \mathbf{v} - \mathbf{J}_P \mathbf{C}^{-1} \mathbf{w}
 \end{equation}
-
