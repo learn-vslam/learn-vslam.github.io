@@ -159,16 +159,16 @@
     </style>
 </head>
 <body>
-<h1>Pose Graph Optimization 1</h1>
+<h1>Pose Graph Optimization</h1>
 From this tutorial, we will start to explore the back-end of visual SLAM. We will start from the optimization-based methods, which is usually formulated as a pose graph optimization problem.
 
 <h2>The sparse bundle adjustment (BA) problem</h2>
 In the bundle adjustment problem, we want to optimize the camera poses and the 3D points by minimizing the reprojection error, which is denoted as,
 \begin{equation}
 \begin{aligned}
-& \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} \left( \frac{1}{2} \sum_{i=1}^{m} \sum_{j=1}^{n}\left\| \mathbf{x}_j - \mathbf{K} \mathbf{T}_{CWi} \mathbf{X}_{Wj} \right\|_2^2 \right) \\
-&= \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} \left( \frac{1}{2} \sum_{i=1}^{m} \sum_{j=1}^{n}\left\| \mathbf{x}_j - \pi (\mathbf{T}_{CWi}, \mathbf{X}_{Wj}) \right\|_2^2 \right) \\
-&= \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} f = \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} \left( \frac{1}{2} \sum_{i=1}^{m} \sum_{j=1}^{n} \mathbf{e}_{ij}^2 \right) \\
+& \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} \left( \frac{1}{2} \sum_{i=1}^{M} \sum_{j=1}^{N}\left\| \mathbf{x}_j - \mathbf{K} \mathbf{T}_{CWi} \mathbf{X}_{Wj} \right\|_2^2 \right) \\
+&= \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} \left( \frac{1}{2} \sum_{i=1}^{M} \sum_{j=1}^{N}\left\| \mathbf{x}_j - \pi (\mathbf{T}_{CWi}, \mathbf{X}_{Wj}) \right\|_2^2 \right) \\
+&= \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} f = \arg \min_{\mathbf{T}_{CWi}, \mathbf{X}_{Wj}} \left( \frac{1}{2} \sum_{i=1}^{M} \sum_{j=1}^{N} \mathbf{e}_{ij}^2 \right) \\
 \label{eq:reproj_error}
 \end{aligned}
 \end{equation}
@@ -203,18 +203,23 @@ The optimal $\mathbf{x}$ is solved with its normal equation,
 
 where $\mathbf{H}$ is the second-order approximation of the Hessian. <br><br>
 
-Apply this to this BA problem, here we just $\mathbf{J}_C$ to denote the Jacobian over pose and $\mathbf{J}_P$ the Jacobian over 3D landmark points,
+Apply this to the BA problem, here we just $\mathbf{J}_C$ to denote the Jacobian over pose and $\mathbf{J}_P$ the Jacobian over 3D landmark points,
 \begin{equation}
 \begin{aligned}
 \frac{1}{2}\| f(\mathbf{\mathcal{X}} + \Delta\mathbf{\mathcal{X}})\|^2 
-&\approx \frac{1}{2}\sum_{i=1}^m \sum_{j=1}^n 
+&\approx \frac{1}{2}\sum_{i=1}^M \sum_{j=1}^N 
 \|\mathbf{e}_{ij} + {\mathbf{J}_C}_{ij}\Delta\boldsymbol{\xi}_i + {\mathbf{J}_P}_{ij}\Delta\mathbf{X}_{j}\|^2 \\
 &= \frac{1}{2}\|\mathbf{e} + \mathbf{J}_C\Delta \mathbf{\mathcal{X}_c} + \mathbf{J}^X\Delta\mathbf{\mathcal{X}_p}\|^2
 \end{aligned}
 \end{equation}
 
+The incremental updates for $\mathcal{X}$ is represented as
 \begin{equation}
-\mathbf{H}\Delta\mathbf{\mathcal{X}} = \mathbf{g}
+\mathbf{H}\Delta\mathbf{\mathcal{X}} = -\mathbf{J}^\top \mathbf{e}
+\end{equation}
+
+\begin{equation}
+\Delta\mathbf{\mathcal{X}} = - \mathbf{H}^{-1} \mathbf{J}^\top \mathbf{e} = -( \mathbf{J}^\top \mathbf{J} )^{-1} \mathbf{J}^\top \mathbf{e}
 \end{equation}
 
 The Jacobian which combines $\mathbf{J}_C$ and $\mathbf{J}_P$ is denoted as,
@@ -240,7 +245,7 @@ And and approximated Hessian matrix is,
 <h2>Sparsity of the Hessian structure</h2>
 In visual SLAM,  the local observability between camera poses and 3D points makes the Jacobian of the reprojection error term $\mathbf{e}$ w.r.t $\mathbf{\mathcal{X}}$ sparse. Think about a camera moving in a scene, only a subset of the 3D point map is observed by a subset of camera pose trajectory.
 
-<h3>Hessian sparsity example</h3>
+<h3>Hessian sparsity introduction</h3>
 We will first go through a concrete example to illustrate the sparsity of the Hessian matrix. Consider the case where we have $M=2$ cameras and $N=4$ 3D landmark points. The illustration and its factor graph is shown as,
 
 The reprojection error term is
@@ -400,9 +405,13 @@ We define derivative terms as,
 
 
 And the Hessian $\mathbf{H}$ is,
-\begin{equation}
+\begin{aligned}
 \mathbf{H}
-=
+&= \begin{bmatrix}
+\mathbf{H}_{CC} & \mathbf{H}_{CP} \\
+\mathbf{H}_{PC} & \mathbf{H}_{PP}
+\end{bmatrix} \\
+&=
 \left[
 \begin{array}{cc|ccc}
 \mathbf{E}_{11}^\top\mathbf{E}_{11} + \mathbf{E}_{12}^\top\mathbf{E}_{12}
@@ -441,9 +450,9 @@ And the Hessian $\mathbf{H}$ is,
 & \mathbf{F}_{23}^\top\mathbf{F}_{23}
 \end{array}
 \right]
-\end{equation}
+\end{aligned}
 
-It is obvious that the Hessian matrix is symmetric. The upper left block of the Hessian matrix is diagonal and all about camera pose $\boldsymbol{\xi}$ and the lower right block is also diagonal and all about 3D points $\mathbf{X}$. 
+It is obvious that the Hessian matrix is symmetric. The upper left block of the Hessian matrix $\mathbf{H}_{CC} \in \mathbb{R}^{6M \times 6M}$ is block diagonal and all about camera pose $\boldsymbol{\xi}$ and the lower right block $\mathbf{H}_{PP} \in \mathbb{R}^{3N \times 3N}$ is also block diagonal and all about 3D points $\mathbf{X}$. 
 
 The effective size of the Hessian used for optimization depends on the observability between camera poses and 3D points. In fact, the observability information is also hidden in $\mathbf{H}$ itself. Think about the last block in the first row block of $\mathbf{H}$, it is a $[\mathbf{0}]$ block because the 3rd 3D landmark is not observable by the 1st camera. Same for the 3rd block in the second row block, it is $[\mathbf{0}]$ because the 1st 3D point is not observable by camera 2. <br>
 
@@ -460,58 +469,171 @@ In summary, the Jacobian of the reprojection error over the $i$-th camera pose a
 \Big]
 \end{equation}
 
+We use $\mathbf{\mathcal{C}}_j$ and $\mathbf{\mathcal{P}}_i$ to denote the set of observable cameras for the $j$-th 3D point and, observable 3D points for the $i$-th camera. We also use $| \mathbf{\mathcal{C}}_j |$ and $| \mathbf{\mathcal{P}}_i |$ to denote their sizes. And the Hessian matrix is,
+\begin{equation}
+\mathbf{H} =
+\left[
+\begin{array}{cccc|cccc}
+\sum\limits_{j}^{| \mathbf{\mathcal{P}}_1 |} \mathbf{E}_{1j}^{\top}\mathbf{E}_{1j}
+& \mathbf{0} & \cdots & \mathbf{0}
+& \mathbf{E}_{11}^{\top}\mathbf{F}_{11}
+& \mathbf{E}_{12}^{\top}\mathbf{F}_{12}
+& \cdots
+& \mathbf{E}_{1N}^{\top}\mathbf{F}_{1N}
+\\
+
+\mathbf{0}
+& \sum\limits_{j}^{| \mathbf{\mathcal{P}}_2 |} \mathbf{E}_{2j}^{\top}\mathbf{E}_{2j}
+& \cdots & \mathbf{0}
+& \mathbf{E}_{21}^{\top}\mathbf{F}_{21}
+& \mathbf{E}_{22}^{\top}\mathbf{F}_{22}
+& \cdots
+& \mathbf{E}_{2N}^{\top}\mathbf{F}_{2N}
+\\
+
+\vdots & \vdots & \ddots & \vdots
+& \vdots & \vdots & \ddots & \vdots
+\\
+
+\mathbf{0} & \mathbf{0} & \cdots
+& \sum\limits_{j}^{| \mathbf{\mathcal{P}}_M |} \mathbf{E}_{Mj}^{\top}\mathbf{E}_{Mj}
+& \mathbf{E}_{M1}^{\top}\mathbf{F}_{M1} & \mathbf{E}_{M2}^{\top}\mathbf{F}_{M2} & \cdots
+& \mathbf{E}_{MN}^{\top}\mathbf{F}_{MN}
+\\
+\hline
+
+\mathbf{F}_{11}^{\top}\mathbf{E}_{11}
+& \mathbf{F}_{21}^{\top}\mathbf{E}_{21} & \cdots &\mathbf{F}_{M1}^{\top}\mathbf{E}_{M1}
+& \sum\limits_{i}^{| \mathbf{\mathcal{C}}_1 |} \mathbf{F}_{i1}^{\top}\mathbf{F}_{i1}
+& \mathbf{0} & \cdots & \mathbf{0}
+\\
+
+\mathbf{F}_{12}^{\top}\mathbf{E}_{12}
+& \mathbf{F}_{22}^{\top}\mathbf{E}_{22}
+& \cdots & \mathbf{F}_{M2}^{\top}\mathbf{E}_{M2}
+& \mathbf{0}
+& \sum\limits_{i}^{| \mathbf{\mathcal{C}}_2 |} \mathbf{F}_{i2}^{\top}\mathbf{F}_{i2}
+& \cdots & \mathbf{0}
+\\
+
+\vdots & \vdots & \ddots & \vdots
+& \vdots & \vdots & \ddots & \vdots
+\\
+
+\mathbf{F}_{1N}^{\top}\mathbf{E}_{1N}
+& \mathbf{F}_{2N}^{\top}\mathbf{E}_{2N}
+& \cdots
+& \mathbf{F}_{MN}^{\top}\mathbf{E}_{MN}
+& \mathbf{0} & \mathbf{0} & \cdots
+& \sum\limits_{i}^{| \mathbf{\mathcal{C}}_N |}  \mathbf{F}_{iN}^{\top}\mathbf{F}_{iN}
+\end{array}
+\right]
+\end{equation}
+
+Notes that part of the blocks in $\mathbf{H}_{CP}$ are actually $\mathbf{0}$ matrices, here we write them all explicitly for the sake of completeness. But the real $\mathbf{H}_{CP}$ matrix (contains how many $\mathbf{0}$ blocks, e.g. it's sparsity) depends on the observability for the $i-th$ camera and the $j-th$ points. And in practice, the size of 3D points $N$ is often much larger than the size of cameras $M$.
+
 <h3>Schur Complement</h3>
+As we discussed before, the inremental updates for $\mathbf{\mathcal{X}}$ can be solved by the following linear equation,
 \begin{equation}
 \begin{bmatrix}
-\mathbf{B} & \mathbf{J}_P \\
-{\mathbf{J}_P}^\top & \mathbf{C}
+\mathbf{H}_{CC} & \mathbf{H}_{CP} \\
+\mathbf{H}_{CP}^\top & \mathbf{H}_{PP}
 \end{bmatrix}
 \begin{bmatrix}
-\Delta\mathbf{x}_c \\ \Delta\mathbf{x}_p
+\Delta \mathbf{\mathcal{X}}_C \\ \Delta \mathbf{\mathcal{X}}_P
 \end{bmatrix}
 =
 \begin{bmatrix}
-\mathbf{v} \\ \mathbf{w}
+\mathbf{J}_C \mathbf{e}_C \\ \mathbf{J}_P \mathbf{e}_P
 \end{bmatrix}
 \end{equation}
 
+We will use the internal sparsity of Hessian to make the solving more efficient. We want to avoid inversing the entire Hessian matrix by inversing only part of it. In specific, we want to inverse $\mathbf{H}$ by only inversing part of $\mathbf{H}$, ideally the diagonal part, and not $\mathbf{H}_{CP}$ and $\mathbf{H}_{CP}^\top$, which are usually more expensive to inverse than a diagonal matrix.
 \begin{equation}
 \begin{bmatrix}
-\mathbf{I} & - \mathbf{J}_P \mathbf{C}^{-1} \\
+\mathbf{I} & -\mathbf{H}_{CP}\mathbf{H}_{PP}^{-1} \\
 \mathbf{0} & \mathbf{I}
 \end{bmatrix}
 \begin{bmatrix}
-\mathbf{B} & \mathbf{J}_P \\
-{\mathbf{J}_P}^\top & \mathbf{C}
+\mathbf{H}_{CC} & \mathbf{H}_{CP} \\
+\mathbf{H}_{CP}^{\top} & \mathbf{H}_{PP}
 \end{bmatrix}
 \begin{bmatrix}
-\Delta\mathbf{x}_c \\ \Delta\mathbf{x}_p
+\Delta \boldsymbol{\mathcal{X}}_C \\
+\Delta \boldsymbol{\mathcal{X}}_P
 \end{bmatrix}
 =
 \begin{bmatrix}
-\mathbf{I} & -\mathbf{J}_P \mathbf{C}^{-1} \\
+\mathbf{I} & -\mathbf{H}_{CP}\mathbf{H}_{PP}^{-1} \\
 \mathbf{0} & \mathbf{I}
 \end{bmatrix}
 \begin{bmatrix}
-\mathbf{v} \\ \mathbf{w}
+\mathbf{J}_C^{\top}\mathbf{e} \\
+\mathbf{J}_P^{\top}\mathbf{e}
 \end{bmatrix}
 \end{equation}
 
+what we do next is to multiply a matrix on both sides and eliminate the $\mathbf{H}_{CP}$ in the linear system, obtaining,
 \begin{equation}
 \begin{bmatrix}
-\mathbf{B} - \mathbf{J}_P \mathbf{C}^{-1} {\mathbf{J}_P}^\top & \mathbf{0} \\
-{\mathbf{J}_P}^\top & \mathbf{C}
+\mathbf{H}_{CC}
+- \mathbf{H}_{CP}\mathbf{H}_{PP}^{-1}\mathbf{H}_{CP}^{\top}
+& \mathbf{0}
+\\
+\mathbf{H}_{CP}^{\top}
+& \mathbf{H}_{PP}
 \end{bmatrix}
 \begin{bmatrix}
-\Delta\mathbf{x}_c \\ \Delta\mathbf{x}_p
+\Delta \boldsymbol{\mathcal{X}}_C \\
+\Delta \boldsymbol{\mathcal{X}}_P
 \end{bmatrix}
 =
 \begin{bmatrix}
-\mathbf{v} - \mathbf{J}_P \mathbf{C}^{-1} \mathbf{w} \\ \mathbf{w}
+\mathbf{J}_C^{\top}\mathbf{e}
+- \mathbf{H}_{CP}\mathbf{H}_{PP}^{-1}\mathbf{J}_P^{\top}\mathbf{e}
+\\
+\mathbf{J}_P^{\top}\mathbf{e}
 \end{bmatrix}
 \end{equation}
 
+then we get
 \begin{equation}
-[\mathbf{B} - \mathbf{J}_P \mathbf{C}^{-1} {\mathbf{J}_P}^\top] \Delta\mathbf{x}_c 
-= \mathbf{v} - \mathbf{J}_P \mathbf{C}^{-1} \mathbf{w}
+\left(
+\mathbf{H}_{CC}
+- \mathbf{H}_{CP}\mathbf{H}_{PP}^{-1}\mathbf{H}_{CP}^{\top}
+\right)
+\Delta \boldsymbol{\mathcal{X}}_C
+=
+\mathbf{J}_C^{\top}\mathbf{e}
+- \mathbf{H}_{CP}\mathbf{H}_{PP}^{-1}\mathbf{J}_P^{\top}\mathbf{e}
 \end{equation}
+
+and solve $\Delta \mathbf{\mathcal{X}_C}$ as,
+\begin{equation}
+\Delta \boldsymbol{\mathcal{X}}_C
+=
+\left(
+\mathbf{H}_{CC}
+- \mathbf{H}_{CP}\mathbf{H}_{PP}^{-1}\mathbf{H}_{CP}^{\top}
+\right)^{-1} \left( \mathbf{J}_C^{\top}\mathbf{e}
+- \mathbf{H}_{CP}\mathbf{H}_{PP}^{-1}\mathbf{J}_P^{\top}\mathbf{e} \right)
+\end{equation}
+
+Matrix $\mathbf{S} = \left(\mathbf{H}_{CC} - \mathbf{H}_{CP}\mathbf{H}_{PP}^{-1}\mathbf{H}_{CP}^{\top} \right)$ is called the Schur complement of $\mathbf{H}_{PP}$. Although $\mathbf{S} $ is neither really sparse nor diagonal, the size is relatively small ($6M \times 6M$) and its construction and solution are typically computationally inexpensive in practice. <br>
+
+The incremental for the 3D points are then solved as,
+\begin{equation}
+\Delta \boldsymbol{\mathcal{X}}_P
+=
+\mathbf{H}_{PP}^{-1}
+\left(
+\mathbf{J}_P^{\top}\mathbf{e}
+-
+\mathbf{H}_{CP}^{\top}
+\Delta \boldsymbol{\mathcal{X}}_C
+\right)
+\end{equation}
+
+Taking a look back again, we solve $\Delta \boldsymbol{\mathcal{X}}_C$ by inversing a relative small, non-diagonal matrix, and then solve $\Delta \boldsymbol{\mathcal{X}}_P$ by inversing a large but sparse, diagonal matrix.
+
+<h2>Pose graph introduction</h2>
