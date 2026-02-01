@@ -175,8 +175,10 @@ In the bundle adjustment problem, we want to optimize the camera poses and the 3
 
 The variables we want to optimize are the camera poses and the 3D points, which are denoted as:
 \begin{equation}
-\mathbf{\mathcal{X}} = [\mathbf{T}_1, \ldots, \mathbf{T}_m, \mathbf{X}_1, \ldots, \mathbf{X}_n]^\top
+\mathbf{\mathcal{X}} = [\boldsymbol{\xi}_1, \ldots, \boldsymbol{\xi}_i, \ldots, \boldsymbol{\xi}_M, \mathbf{X}_1, \ldots, \mathbf{X}_j, \ldots, \mathbf{X}_N]^\top
 \end{equation}
+
+where $\boldsymbol{\xi}_i \in \mathfrak{se}(3)$ is the Lie algebra of the camera pose $\mathbf{T}_{CWi} \in \text{SE}(3)$. <br>
 
 Recall the Gaussian-Newton method for solving the non-linear least squares problem, where we linearlize the objective function $f(\mathbf{x})$, 
 \begin{equation}
