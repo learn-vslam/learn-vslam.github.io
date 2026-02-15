@@ -248,7 +248,7 @@ And and approximated Hessian matrix is,
 In visual SLAM,  the local observability between camera poses and 3D points makes the Jacobian of the reprojection error term $\mathbf{e}$ w.r.t $\mathbf{\mathcal{X}}$ sparse. Think about a camera moving in a scene, only a subset of the 3D point map is observed by a subset of camera pose trajectory.
 
 <h3>Hessian sparsity introduction</h3>
-We will first go through a concrete example to illustrate the sparsity of the Hessian matrix. Consider the case where we have $M=2$ cameras and $N=4$ 3D landmark points. The illustration and its factor graph is shown as,
+We will first go through a concrete example to illustrate the sparsity of the Hessian matrix. Consider the case where we have $M=2$ cameras and $N=3$ 3D landmark points. The illustration and its factor graph is shown as,
 
 The reprojection error term is
 \begin{equation}
@@ -638,4 +638,276 @@ The incremental for the 3D points are then solved as,
 
 Taking a look back again, we solve $\Delta \boldsymbol{\mathcal{X}}_C$ by inversing a relative small, non-diagonal matrix, and then solve $\Delta \boldsymbol{\mathcal{X}}_P$ by inversing a large but sparse, diagonal matrix.
 
-<h2>Pose graph introduction</h2>
+<h2>Pose graph optimization introduction</h2>
+
+<h3>Sliding Window Filter and Optimization</h3>
+
+<h3>Why Control BA Size?</h3>
+Full bundle adjustment (BA) over every frame and landmark is great for offline SLAM/SfM but far too expensive for real-time SLAM. We need strategies to keep the problem small for real-time online optimization.
+
+The standard approach is: only promote selected <strong>keyframes</strong> into the BA; non-keyframes are used for pose tracking only. But keyframes accumulate over time, so we still need to bound the optimization. There're two popular options:
+
+<ul>
+<li><strong>Sliding window</strong>: keep the $K$ most recent keyframes; discard older ones.
+<li><strong>Covisibility graph</strong> (as in ORB-SLAM2): keep $C$ keyframes that share feature observations with the current frame.
+</ul>
+
+Both are engineering trade-offs between optimality and speed. But they raise a subtle theoretical question: when we drop an old keyframe, should we just delete it, or does it still carry information that matters?
+
+<h3>Sliding Window Formulation</h3>
+
+<p>
+Suppose our sliding window contains $M$ keyframe poses in Lie algebra form and $N$ landmarks:
+</p>
+
+\begin{equation}
+  \boldsymbol{\xi}_k \in \mathbb{R}^6, \quad k=1,\dots,M, \qquad
+  \mathbf{X}_j \in \mathbb{R}^3, \quad j=1,\dots,N.
+\end{equation}
+
+<p>
+The full state vector has dimension $6M + 3N$:
+</p>
+
+\begin{equation}
+  \mathbf{\mathcal{X}} = 
+  \begin{bmatrix}
+    \boldsymbol{\xi}_1 \\ \vdots \\ \boldsymbol{\xi}_M \\ \mathbf{X}_1 \\ \vdots \\ \mathbf{X}_N
+  \end{bmatrix}
+  \in \mathbb{R}^{6M+3N}.
+\end{equation}
+
+<p>
+After BA converges, the cost is locally quadratic, so the posterior is approximately Gaussian with information (Hessian) matrix:
+</p>
+
+\begin{equation}
+\mathbf{H} = \mathbf{J}^\top \mathbf{J} =
+\begin{bmatrix}
+\mathbf{H}_{CC} & \mathbf{H}_{CP} \\
+\mathbf{H}_{PC} & \mathbf{H}_{PP}
+\end{bmatrix}
+\end{equation}
+
+<p>
+where $\mathbf{H}_{PP}$ is block-diagonal (landmarks are conditionally independent). Applying the Schur complement to eliminate landmarks:
+</p>
+
+\begin{equation}
+  \mathbf{S} = \mathbf{H}_{CC} - \mathbf{H}_{CP}\,\mathbf{H}_{PP}^{-1}\,\mathbf{H}_{PC}
+\end{equation}
+
+<p>
+Why does $\mathbf{S}^{-1}$ give the covariance? Recall that a Gaussian can be written in two equivalent forms:
+</p>
+
+\begin{equation}
+  p(\mathbf{x}) \propto \exp\!\Big(-\tfrac{1}{2}(\mathbf{x}-\boldsymbol{\mu})^\top \boldsymbol{\Sigma}^{-1} (\mathbf{x}-\boldsymbol{\mu})\Big)
+  \quad \Longleftrightarrow \quad
+  p(\mathbf{x}) \propto \exp\!\Big(-\tfrac{1}{2}\mathbf{x}^\top \boldsymbol{\Lambda}\, \mathbf{x} + \boldsymbol{\eta}^\top \mathbf{x}\Big)
+\end{equation}
+
+<p>
+where $\boldsymbol{\Lambda} = \boldsymbol{\Sigma}^{-1}$ is the <strong>information (precision) matrix</strong>. At the BA optimum, the cost is locally quadratic:
+</p>
+
+\begin{equation}
+  f(\mathbf{\mathcal{X}}^* + \Delta\mathbf{\mathcal{X}}) \approx \text{const} + \tfrac{1}{2}\,\Delta\mathbf{\mathcal{X}}^\top\,\mathbf{H}\,\Delta\mathbf{\mathcal{X}}
+\end{equation}
+
+<p>
+Interpreting $\exp(-f)$ as a probability, this is exactly a Gaussian with $\boldsymbol{\Lambda} = \mathbf{H}$, so $\boldsymbol{\Sigma} = \mathbf{H}^{-1}$. After the Schur complement eliminates landmarks, $\mathbf{S}$ plays the role of $\mathbf{H}$ over poses only &mdash; it is the reduced information matrix, and $\mathbf{S}^{-1}$ is the pose covariance:
+</p>
+
+\begin{equation}
+  p(\boldsymbol{\xi}_1,\dots,\boldsymbol{\xi}_M \mid \mathbf{X}_1,\dots,\mathbf{X}_N)
+  \sim \mathcal{N}\!\bigl([\boldsymbol{\mu}_1,\dots,\boldsymbol{\mu}_M]^T,\;\mathbf{S}^{-1}\bigr)
+\end{equation}
+
+<p>
+Intuitively, $\mathbf{S}$ encodes how tightly each pose is constrained. Two poses co-observing many landmarks will have large off-diagonal blocks in $\mathbf{S}$ &mdash; moving one forces the other to adjust.
+</p>
+
+<h4>Window update</h4>
+
+<p>When the window moves:</p>
+
+<ul>
+<li>
+<strong>New keyframe $\boldsymbol{\xi}_{M+1}$ arrives:</strong> append to $\mathbf{\mathcal{X}}$, re-run BA. Nothing special.
+</li>
+<li>
+<strong>Old keyframe $\boldsymbol{\xi}_1$ must go:</strong> two choices &mdash;
+
+\begin{equation}
+  \text{Delete:} \quad \mathbf{S}_{\text{new}} = \mathbf{S}_{2:M,\;2:M}
+  \qquad \text{(drop rows/cols — loses information)}
+\end{equation}
+
+\begin{equation}
+  \text{Marginalize:} \quad \mathbf{S}_{\text{new}} = \mathbf{S}_{2:M,\;2:M} - \mathbf{S}_{2:M,\;1}\,\mathbf{S}_{1,1}^{-1}\,\mathbf{S}_{1,\;2:M}
+  \qquad \text{(preserves info — causes fill-in)}
+\end{equation}
+
+Deletion throws away everything $\boldsymbol{\xi}_1$ knew. Marginalization conditions on $\boldsymbol{\xi}_1$'s estimate and propagates its constraints forward &mdash; but the Schur complement couples previously independent variables.
+</li>
+</ul>
+
+<p>
+Adding a keyframe is easy; removing one forces a choice between information loss and structural damage (fill-in).
+</p>
+
+<h3>The Fill-In Problem</h3>
+Say $\boldsymbol{\xi}_1$ observes landmarks $\mathbf{y}_1$ through $\mathbf{y}_4$. In the Hessian, $\boldsymbol{\xi}_1$'s row has non-zero blocks in the columns of those landmarks. When we marginalize $\boldsymbol{\xi}_1$ (apply the Schur complement to eliminate it), we condition on $\boldsymbol{\xi}_1$'s current estimate. The Schur complement fills in the landmark--landmark block: landmarks that were previously independent (diagonal block) now become coupled. This is called <strong>fill-in</strong>.
+
+Intuitively, marginalizing $\boldsymbol{\xi}_1$ turns the joint distribution into a conditional:
+\begin{equation}
+  p(\boldsymbol{\xi}_1,\dots,\boldsymbol{\xi}_4,\mathbf{X}_1,\dots,\mathbf{X}_6)
+  = p(\boldsymbol{\xi}_2,\dots,\boldsymbol{\xi}_4,\mathbf{X}_1,\dots,\mathbf{X}_6\mid\boldsymbol{\xi}_1)\;
+    \underbrace{p(\boldsymbol{\xi}_1)}_{\text{discarded}}.
+  \tag{9.1}
+\end{equation}
+
+The conditional factor $p(\cdot\mid\boldsymbol{\xi}_1)$ introduces new constraints (``where these landmarks should be, given $\boldsymbol{\xi}_1$''), destroying the sparse diagonal structure we rely on for efficient BA.
+
+If we marginalize landmarks first, fill-in appears in the pose--pose block---tolerable, since BA doesn't require a diagonal pose block. But fill-in in the landmark block kills sparsity and makes iterative solvers infeasible (exactly why early EKF backends couldn't scale).
+
+<h4>Maintaining Sparsity: Three Cases</h4>
+
+We preserve sparsity by handling each landmark of the departing keyframe $\boldsymbol{\xi}_1$ differently:
+
+<ul>
+<li><strong>Landmark seen only by $\boldsymbol{\xi}_1$</strong>: it's isolated---just delete it. No impact on anything.
+<li><strong>Landmark seen in $\boldsymbol{\xi}_2$--$\boldsymbol{\xi}_4$ but will not reappear</strong>: marginalize both $\boldsymbol{\xi}_1$ and this landmark. The result is a prior on the pose--pose block, which is fine for sparsity.
+<li><strong>Landmark seen in $\boldsymbol{\xi}_2$--$\boldsymbol{\xi}_4$ and may reappear</strong>: we <em>cannot</em> marginalize it (we'll need to update it later). Engineering fix: pretend $\boldsymbol{\xi}_1$ never saw it---just drop that observation. This costs a tiny bit of information but keeps the landmark block diagonal.
+</ul>
+
+
+<h3>Intuition for marginalization in SWF</h3>
+Marginalizing a keyframe means ``fix its estimate and compute how all other variables should behave, conditioned on it.'' The observed landmarks produce a prior on <em>where they should be</em>; if those landmarks are then also marginalized, their observers inherit a prior on <em>where the keyframe should observe them</em>. Information cascades forward as priors.
+
+
+<h3>What Is a Pose Graph?</h3>
+
+After a few BA iterations, landmark positions largely converge while poses still benefit from refinement. This suggests a shortcut: <strong>stop optimizing landmarks</strong> and treat them only as constraints between poses.
+
+The result is a <strong>pose graph</strong>: vertices are camera poses, edges encode relative-motion estimates (from feature matching, direct methods, GPS, IMU, etc.). Since the number of landmarks far exceeds the number of poses, this dramatically reduces the problem size and is the standard approach for large-scale SLAM and loop closure.
+
+<h3>Residuals and Jacobians</h3>
+
+Each node is a pose $\mathbf{T}_1,\dots,\mathbf{T}_n$. An edge between $\mathbf{T}_i$ and $\mathbf{T}_j$ carries a measured relative transform $\Delta\mathbf{T}_{ij}$. In Lie algebra:
+\begin{equation}
+  \Delta\boldsymbol{\xi}_{ij}
+  = \boldsymbol{\xi}_i^{-1}\circ\boldsymbol{\xi}_j
+  = \ln\!\bigl(\mathbf{T}_i^{-1}\mathbf{T}_j\bigr)^{\vee}
+  \tag{9.2}
+\end{equation}
+or equivalently in SE(3):
+\begin{equation}
+  \mathbf{T}_{ij} = \mathbf{T}_i^{-1}\mathbf{T}_j.
+  \tag{9.3}
+\end{equation}
+
+The residual moves the measurement to the right-hand side:
+\begin{equation}
+  \mathbf{e}_{ij}
+  = \ln\!\bigl(\mathbf{T}_{ij}^{-1}\mathbf{T}_i^{-1}\mathbf{T}_j\bigr)^{\vee}.
+  \tag{9.4}
+\end{equation}
+
+To linearize, perturb both poses with left disturbances $\delta\boldsymbol{\xi}_i$, $\delta\boldsymbol{\xi}_j$:
+\begin{equation}
+  \hat{e}_{ij}
+  = \ln\!\bigl(\mathbf{T}_{ij}^{-1}\mathbf{T}_i^{-1}
+    \exp((-\delta\boldsymbol{\xi}_i)^{\wedge})\,
+    \exp(\delta\boldsymbol{\xi}_j^{\wedge})\,\mathbf{T}_j\bigr)^{\vee}.
+  \tag{9.5}
+\end{equation}
+
+We need to shuffle the disturbance terms to one side for the BCH approximation. The key identity (adjoint property) is:
+\begin{equation}
+  \exp\!\bigl((\mathrm{Ad}(\mathbf{T})\boldsymbol{\xi})^{\wedge}\bigr)
+  = \mathbf{T}\,\exp(\boldsymbol{\xi}^{\wedge})\,\mathbf{T}^{-1},
+  \tag{9.6}
+\end{equation}
+which rearranges to:
+\begin{equation}
+  \exp(\boldsymbol{\xi}^{\wedge})\,\mathbf{T}
+  = \mathbf{T}\,\exp\!\Bigl(\bigl(\mathrm{Ad}(\mathbf{T}^{-1})\boldsymbol{\xi}\bigr)^{\wedge}\Bigr).
+  \tag{9.7}
+\end{equation}
+
+Using this to move the disturbances rightward and applying the first-order BCH approximation:
+\begin{equation}
+\begin{aligned}
+  \hat{e}_{ij}
+  &= \ln\!\bigl(\mathbf{T}_{ij}^{-1}\mathbf{T}_i^{-1}
+     \exp((-\delta\boldsymbol{\xi}_i)^{\wedge})\,
+     \exp(\delta\boldsymbol{\xi}_j^{\wedge})\,\mathbf{T}_j\bigr)^{\vee} \\
+  &= \ln\!\Bigl(\mathbf{T}_{ij}^{-1}\mathbf{T}_i^{-1}\mathbf{T}_j
+     \exp\!\bigl((-\mathrm{Ad}(\mathbf{T}_j^{-1})\delta\boldsymbol{\xi}_i)^{\wedge}\bigr)\,
+     \exp\!\bigl((\mathrm{Ad}(\mathbf{T}_j^{-1})\delta\boldsymbol{\xi}_j)^{\wedge}\bigr)
+     \Bigr)^{\vee} \\
+  &\approx \ln\!\Bigl(\mathbf{T}_{ij}^{-1}\mathbf{T}_i^{-1}\mathbf{T}_j
+     \bigl[\mathbf{I}
+       - (\mathrm{Ad}(\mathbf{T}_j^{-1})\delta\boldsymbol{\xi}_i)^{\wedge}
+       + (\mathrm{Ad}(\mathbf{T}_j^{-1})\delta\boldsymbol{\xi}_j)^{\wedge}
+     \bigr]\Bigr)^{\vee} \\
+  &\approx \mathbf{e}_{ij}
+     + \frac{\partial \mathbf{e}_{ij}}{\partial\delta\boldsymbol{\xi}_i}\,\delta\boldsymbol{\xi}_i
+     + \frac{\partial \mathbf{e}_{ij}}{\partial\delta\boldsymbol{\xi}_j}\,\delta\boldsymbol{\xi}_j
+\end{aligned}
+\tag{9.8}
+\end{equation}
+
+The two Jacobians are:
+\begin{equation}
+  \frac{\partial \mathbf{e}_{ij}}{\partial\delta\boldsymbol{\xi}_i}
+  = -\mathcal{J}_r^{-1}(\mathbf{e}_{ij})\,\mathrm{Ad}(\mathbf{T}_j^{-1})
+  \tag{9.9}
+\end{equation}
+\begin{equation}
+  \frac{\partial \mathbf{e}_{ij}}{\partial\delta\boldsymbol{\xi}_j}
+  = \mathcal{J}_r^{-1}(\mathbf{e}_{ij})\,\mathrm{Ad}(\mathbf{T}_j^{-1}).
+  \tag{9.10}
+\end{equation}
+
+The right Jacobian $\mathcal{J}_r$ on $\mathfrak{se}(3)$ is complex. When the error is small:
+\begin{equation}
+  \mathcal{J}_r^{-1}(\mathbf{e}_{ij})
+  \approx \mathbf{I} + \frac{1}{2}
+  \begin{bmatrix}
+    \boldsymbol{\phi}_e^{\wedge} & \boldsymbol{\rho}_e^{\wedge} \\
+    \mathbf{0} & \boldsymbol{\phi}_e^{\wedge}
+  \end{bmatrix}.
+  \tag{9.11}
+\end{equation}
+
+In practice the residuals may not be small after optimization (inconsistent edges, outliers), so setting $\mathcal{J}_r\approx\mathbf{I}$ introduces some error---but it often works well enough.
+
+<h3>Overall Objective</h3>
+
+With the Jacobians in hand, pose graph optimization is standard least squares. Let $\mathcal{E}$ be the set of all edges:
+\begin{equation}
+  \min\;\frac{1}{2}\sum_{i,j\in\mathcal{E}}
+    \mathbf{e}_{ij}^{T}\,\boldsymbol{\Sigma}_{ij}^{-1}\,\mathbf{e}_{ij}.
+  \tag{9.12}
+\end{equation}
+
+Solve with Gauss--Newton, Levenberg--Marquardt, etc.
+
+
+<h2>References</h2>
+<ol>
+    <li>Visual SLAM: From Theory to Practice, by Xiang Gao, Tao Zhang, Qinrui Yan and Yi Liu</li>
+</ol>
+
+<br>
+If you find this article helpful, please consider citing it in your research:
+<pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto;">
+@article{Hu2026learnvslam,
+  author = {Hu, Yafei},
+  title = {Learning Visual SLAM: Pose Graph Optimization},
+  year = {2026}
+}
+</pre>
